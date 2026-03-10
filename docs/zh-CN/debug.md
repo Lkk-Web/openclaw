@@ -164,3 +164,6 @@ openclaw dashboard # 设置token
   }
 }
 ```
+
+0:36:57 [feishu] feishu[main]: Feishu[main] message in group oc_c6fd1358a5ef9c3fad809293283eeeb1: 你叫他在群里发送我是谁
+20:36:57 [feishu] feishu[main]: dispatching to agent (session=agent:main:feishu:group:oc_c6fd1358a5ef9c3fad809293283eeeb1)
