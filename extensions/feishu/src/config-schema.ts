@@ -184,6 +184,7 @@ export const FeishuAccountConfigSchema = z
   .object({
     enabled: z.boolean().optional(),
     name: z.string().optional(), // Display name for this account
+    agent: z.string().optional(), // Agent ID to route messages to
     appId: z.string().optional(),
     appSecret: buildSecretInputSchema().optional(),
     encryptKey: z.string().optional(),

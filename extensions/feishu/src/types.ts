@@ -26,6 +26,7 @@ export type ResolvedFeishuAccount = {
   enabled: boolean;
   configured: boolean;
   name?: string;
+  agent?: string;
   appId?: string;
   appSecret?: string;
   encryptKey?: string;
