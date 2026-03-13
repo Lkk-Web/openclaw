@@ -33,9 +33,11 @@ export const zh_CN: TranslationMap = {
     skills: "技能",
     nodes: "节点",
     chat: "聊天",
+    "pixel-office": "像素办公室",
     config: "配置",
     debug: "调试",
     logs: "日志",
+    "task-panel": "任务面板",
   },
   subtitles: {
     agents: "管理代理工作区、工具和身份。",
@@ -48,9 +50,11 @@ export const zh_CN: TranslationMap = {
     skills: "管理技能可用性和 API 密钥注入。",
     nodes: "配对设备、功能和命令公开。",
     chat: "用于快速干预的直接网关聊天会话。",
+    "pixel-office": "交互式像素办公室环境。",
     config: "安全地编辑 ~/.openclaw/openclaw.json。",
     debug: "网关快照、事件和手动 RPC 调用。",
     logs: "网关文件日志的实时追踪。",
+    "task-panel": "监控和管理正在运行的代理任务。",
   },
   overview: {
     access: {

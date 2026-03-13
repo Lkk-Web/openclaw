@@ -12,7 +12,7 @@ const SESSION_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_PARENT_SESSIONS_TO_PARSE = 40;
 const ORPHAN_FALLBACK_WINDOW_MS = 15 * 60 * 1000;
 const SUBAGENT_MAX_ACTIVE_MS = 30 * 60 * 1000;
-const SUBAGENT_ACTIVITY_TEXT_MAX_LEN = 80;
+const SUBAGENT_ACTIVITY_TEXT_MAX_LEN = 10000;
 const SUBAGENT_ACTIVITY_EVENT_LIMIT = 6;
 
 // ── Types (identical field names to original route.ts) ──────────────────────
@@ -154,7 +154,7 @@ function resolveSubagentSessionId(
 ): string | null {
   const fromIndex = sessionsIndex?.[childSessionKey]?.sessionId;
   if (typeof fromIndex === "string" && fromIndex.trim()) {return fromIndex.trim();}
-  return getSubagentSessionIdFromKey(childSessionKey);
+  return null;
 }
 
 // ── Subagent activity events ─────────────────────────────────────────────────
@@ -164,10 +164,30 @@ async function parseSubagentActivityEvents(
   childSessionKey: string,
   sessionsIndex?: SessionsIndex,
 ): Promise<SubagentActivityEvent[]> {
-  const sessionId = resolveSubagentSessionId(childSessionKey, sessionsIndex);
-  if (!sessionId) {return [];}
-  const transcriptPath = path.join(agentSessionsDir, `${sessionId}.jsonl`);
-  if (!existsSync(transcriptPath)) {return [];}
+  let sessionId = resolveSubagentSessionId(childSessionKey, sessionsIndex);
+  let transcriptPath = sessionId ? path.join(agentSessionsDir, `${sessionId}.jsonl`) : "";
+  
+  // If not found in parent's sessionsIndex, try loading from subagent's own agent directory
+  if (!sessionId || !existsSync(transcriptPath)) {
+    const match = childSessionKey.match(/^agent:([^:]+):/);
+    if (match?.[1]) {
+      const subagentId = match[1];
+      const subagentSessionsDir = resolveSessionTranscriptsDirForAgent(subagentId);
+      const subagentIndexPath = path.join(subagentSessionsDir, "sessions.json");
+      if (existsSync(subagentIndexPath)) {
+        try {
+          const raw = await fs.readFile(subagentIndexPath, "utf8");
+          const subagentIndex = JSON.parse(raw) as SessionsIndex;
+          sessionId = subagentIndex[childSessionKey]?.sessionId || null;
+          if (sessionId) {
+            transcriptPath = path.join(subagentSessionsDir, `${sessionId}.jsonl`);
+          }
+        } catch { /* ignore */ }
+      }
+    }
+  }
+  
+  if (!sessionId || !existsSync(transcriptPath)) {return [];}
 
   try {
     const content = await fs.readFile(transcriptPath, "utf8");
@@ -189,7 +209,7 @@ async function parseSubagentActivityEvents(
           const block = blocks[bi] as Record<string, unknown>;
           if (!block) {continue;}
           if ((block.type === "toolCall" || block.type === "tool_use") && typeof block.name === "string") {
-            events.push({ key: `${i}:tool:${block.id || bi}`, text: `tool: ${block.name}`, at });
+            events.push({ key: `${i}:tool:${block.id || bi}`, text: `⏳ tool: ${block.name}`, at });
             continue;
           }
           if (block.type === "text") {
@@ -197,12 +217,10 @@ async function parseSubagentActivityEvents(
             if (normalized) {events.push({ key: `${i}:msg:${bi}`, text: normalized, at });}
           }
         }
-      } else if (role === "toolResult") {
+      } else if (role === "toolResult" || role === "tool") {
         const toolName = typeof msg.toolName === "string" ? msg.toolName.trim() : "";
-        const details = (msg.details && typeof msg.details === "object") ? msg.details as Record<string, unknown> : null;
-        const status = typeof details?.status === "string" ? details.status : "";
         if (toolName) {
-          events.push({ key: `${i}:result:${msg.toolCallId || ""}`, text: `result: ${toolName}${status ? ` (${status})` : ""}`, at });
+          events.push({ key: `${i}:result:${msg.toolCallId || ""}`, text: `✅ tool: ${toolName}`, at });
         }
       } else if (role === "user") {
         for (let bi = 0; bi < blocks.length; bi++) {
@@ -333,10 +351,20 @@ async function parseSubagentsFromSessionFile(
 
     const now = Date.now();
     for (const [toolId, state] of activeSubtasks.entries()) {
-      if (state.at > 0 && now - state.at > SUBAGENT_MAX_ACTIVE_MS) {continue;}
       let activityEvents: SubagentActivityEvent[] | undefined;
       if (state.childSessionKey) {
         activityEvents = await parseSubagentActivityEvents(agentSessionsDir, state.childSessionKey, sessionsIndex);
+        // Filter out subagents with no recent activity
+        if (activityEvents.length > 0) {
+          const lastActivityAt = activityEvents[activityEvents.length - 1].at;
+          if (now - lastActivityAt > SUBAGENT_MAX_ACTIVE_MS) {continue;}
+        } else {
+          // No activity events - check spawn time
+          if (now - state.at > SUBAGENT_MAX_ACTIVE_MS) {continue;}
+        }
+      } else {
+        // No childSessionKey - check spawn time
+        if (now - state.at > SUBAGENT_MAX_ACTIVE_MS) {continue;}
       }
       subagents.push({
         toolId,
@@ -455,6 +483,42 @@ function resolveAgentState(lastActive: number, now: number): "idle" | "working" 
   return "idle";
 }
 
+// ── Core logic (extracted for reuse) ─────────────────────────────────────────
+
+export async function getAgentActivities(): Promise<AgentActivity[]> {
+  const cfg = loadConfig();
+  const agentIds = listAgentIds(cfg);
+  const now = Date.now();
+
+  const agents: AgentActivity[] = await Promise.all(
+    agentIds.map(async (agentId) => {
+      const agentEntry = cfg.agents?.list?.find((a) => a?.id === agentId);
+      const lastActive = await getAgentLastActive(agentId);
+      const state = resolveAgentState(lastActive, now);
+
+      let subagents: SubagentInfo[] | undefined;
+      if (state !== "offline") {
+        const sessionsDir = resolveSessionTranscriptsDirForAgent(agentId);
+        if (existsSync(sessionsDir)) {
+          const list = await parseSubagents(sessionsDir, agentId);
+          if (list.length > 0) {subagents = list;}
+        }
+      }
+
+      return {
+        agentId,
+        name: agentEntry?.name || agentId,
+        emoji: agentEntry?.identity?.emoji || agentEntry?.emoji || "🤖",
+        state,
+        lastActive,
+        subagents,
+      };
+    })
+  );
+
+  return agents;
+}
+
 // ── HTTP handler ─────────────────────────────────────────────────────────────
 
 export async function handleAgentActivityHttpRequest(
@@ -470,36 +534,7 @@ export async function handleAgentActivityHttpRequest(
   }
 
   try {
-    const cfg = loadConfig();
-    const agentIds = listAgentIds(cfg);
-    const now = Date.now();
-
-    const agents: AgentActivity[] = await Promise.all(
-      agentIds.map(async (agentId) => {
-        const agentEntry = cfg.agents?.list?.find((a) => a?.id === agentId);
-        const lastActive = await getAgentLastActive(agentId);
-        const state = resolveAgentState(lastActive, now);
-
-        let subagents: SubagentInfo[] | undefined;
-        if (state !== "offline") {
-          const sessionsDir = resolveSessionTranscriptsDirForAgent(agentId);
-          if (existsSync(sessionsDir)) {
-            const list = await parseSubagents(sessionsDir, agentId);
-            if (list.length > 0) {subagents = list;}
-          }
-        }
-
-        return {
-          agentId,
-          name: agentEntry?.name || agentId,
-          emoji: agentEntry?.identity?.emoji || agentEntry?.emoji || "🤖",
-          state,
-          lastActive,
-          subagents,
-        };
-      })
-    );
-
+    const agents = await getAgentActivities();
     sendJson(res, 200, { agents });
     return true;
   } catch {

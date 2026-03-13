@@ -1,0 +1,109 @@
+/* ===========================================
+   Task Panel View
+   =========================================== */
+
+.task-panel-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: var(--shell-pad);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100%;
+}
+
+/* ===========================================
+   Task Summary Strip (matching cron-summary-strip)
+   =========================================== */
+
+.task-summary-strip {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.task-summary-strip__left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.task-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-summary-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.task-summary-value {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.task-summary-item--wide {
+  min-width: 180px;
+}
+
+.task-summary-strip__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ===========================================
+   Task Details Expand/Collapse
+   =========================================== */
+
+.task-details {
+  margin: 0;
+}
+
+.task-details summary {
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.task-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.task-details summary::before {
+  content: "▶ ";
+  display: inline-block;
+  transition: transform 0.2s;
+  margin-right: 4px;
+}
+
+.task-details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.task-full {
+  margin-top: 8px;
+}
+
+/* ===========================================
+   Task Steps Status
+   =========================================== */
+
+.list-sub li:has(> :first-child:is(:contains("✅"))) {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.list-sub :is(p, li):has(:first-child:contains("⏳")) {
+  font-weight: 500;
+  color: var(--text-primary);
+}

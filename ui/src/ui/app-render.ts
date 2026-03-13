@@ -90,6 +90,7 @@ import { renderOverview } from "./views/overview.ts";
 import { renderPixelOffice } from "./views/pixel-office.ts";
 import { renderSessions } from "./views/sessions.ts";
 import { renderSkills } from "./views/skills.ts";
+import { renderTaskPanel } from "./views/task-panel.ts";
 
 const AVATAR_DATA_RE = /^data:/i;
 const AVATAR_HTTP_RE = /^https?:\/\//i;
@@ -1123,6 +1124,12 @@ export function renderApp(state: AppViewState) {
                 onExport: (lines, label) => state.exportLogs(lines, label),
                 onScroll: (event) => state.handleLogsScroll(event),
               })
+            : nothing
+        }
+
+        ${
+          state.tab === "task-panel"
+            ? renderTaskPanel()
             : nothing
         }
       </main>
