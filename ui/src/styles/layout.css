@@ -447,6 +447,18 @@
   margin-top: 0;
 }
 
+.content--pixel-office {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.content--pixel-office > * + * {
+  margin-top: 0;
+}
+
 /* Content header */
 .content-header {
   display: flex;
@@ -470,6 +482,10 @@
   max-height: 0px;
   padding: 0;
   pointer-events: none;
+}
+
+.content--pixel-office .content-header {
+  display: none;
 }
 
 .page-title {

@@ -68,6 +68,7 @@ import {
 import type { ReadinessChecker } from "./server/readiness.js";
 import type { GatewayWsClient } from "./server/ws-types.js";
 import { handleToolsInvokeHttpRequest } from "./tools-invoke-http.js";
+import { handleAgentActivityHttpRequest } from "./agent-activity-http.js";
 
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
 
@@ -640,6 +641,10 @@ export function createGatewayHttpServer(opts: {
         {
           name: "hooks",
           run: () => handleHooksRequest(req, res),
+        },
+        {
+          name: "agent-activity",
+          run: () => handleAgentActivityHttpRequest(req, res),
         },
         {
           name: "tools-invoke",

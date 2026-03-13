@@ -59,6 +59,77 @@
   background: transparent;
 }
 
+/* Chat tabs - above compose area */
+.chat-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+.chat-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-top: 2px solid transparent;
+  cursor: pointer;
+  transition: color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.chat-tab:hover {
+  color: var(--text);
+}
+
+.chat-tab--active {
+  color: var(--accent);
+  border-top-color: var(--accent);
+}
+
+.chat-tab svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5px;
+}
+
+/* Pixel office container */
+.pixel-office-container {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.pixel-office-canvas-wrapper {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+#pixel-office-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
 /* Focus mode exit button */
 .chat-focus-exit {
   position: absolute;

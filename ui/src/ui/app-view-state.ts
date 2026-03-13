@@ -67,6 +67,7 @@ export type AppViewState = {
   chatThinkingLevel: string | null;
   chatQueue: ChatQueueItem[];
   chatManualRefreshInFlight: boolean;
+  chatSubTab: "messages" | "pixel-office";
   nodesLoading: boolean;
   nodes: Array<Record<string, unknown>>;
   chatNewMessagesBelow: boolean;

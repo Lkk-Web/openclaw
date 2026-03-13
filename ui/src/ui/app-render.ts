@@ -87,6 +87,7 @@ import { renderInstances } from "./views/instances.ts";
 import { renderLogs } from "./views/logs.ts";
 import { renderNodes } from "./views/nodes.ts";
 import { renderOverview } from "./views/overview.ts";
+import { renderPixelOffice } from "./views/pixel-office.ts";
 import { renderSessions } from "./views/sessions.ts";
 import { renderSkills } from "./views/skills.ts";
 
@@ -162,6 +163,7 @@ export function renderApp(state: AppViewState) {
   const cronNext = state.cronStatus?.nextWakeAtMs ?? null;
   const chatDisabledReason = state.connected ? null : t("chat.disconnected");
   const isChat = state.tab === "chat";
+  const isPixelOffice = state.tab === "pixel-office";
   const chatFocus = isChat && (state.settings.chatFocusMode || state.onboarding);
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
   const assistantAvatarUrl = resolveAssistantAvatarUrl(state);
@@ -318,7 +320,7 @@ export function renderApp(state: AppViewState) {
           </div>
         </div>
       </aside>
-      <main class="content ${isChat ? "content--chat" : ""}">
+      <main class="content ${isChat ? "content--chat" : ""} ${isPixelOffice ? "content--pixel-office" : ""}">
         ${
           availableUpdate
             ? html`<div class="update-banner callout danger" role="alert">
@@ -334,8 +336,8 @@ export function renderApp(state: AppViewState) {
         }
         <section class="content-header">
           <div>
-            ${state.tab === "usage" ? nothing : html`<div class="page-title">${titleForTab(state.tab)}</div>`}
-            ${state.tab === "usage" ? nothing : html`<div class="page-sub">${subtitleForTab(state.tab)}</div>`}
+            ${state.tab === "usage" || state.tab === "pixel-office" ? nothing : html`<div class="page-title">${titleForTab(state.tab)}</div>`}
+            ${state.tab === "usage" || state.tab === "pixel-office" ? nothing : html`<div class="page-sub">${subtitleForTab(state.tab)}</div>`}
           </div>
           <div class="page-meta">
             ${state.lastError ? html`<div class="pill danger">${state.lastError}</div>` : nothing}
@@ -1028,6 +1030,14 @@ export function renderApp(state: AppViewState) {
                 onSplitRatioChange: (ratio: number) => state.handleSplitRatioChange(ratio),
                 assistantName: state.assistantName,
                 assistantAvatar: state.assistantAvatar,
+              })
+            : nothing
+        }
+
+        ${
+          state.tab === "pixel-office"
+            ? renderPixelOffice({
+                onRefresh: () => {},
               })
             : nothing
         }
