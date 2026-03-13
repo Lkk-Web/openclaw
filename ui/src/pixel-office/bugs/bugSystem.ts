@@ -50,29 +50,29 @@ function randomRange(min: number, max: number): number {
 }
 
 function clamp(v: number, min: number, max: number): number {
-  if (v < min) return min
-  if (v > max) return max
+  if (v < min) {return min}
+  if (v > max) {return max}
   return v
 }
 
 function normalizeRadians(v: number): number {
   let x = v
-  while (x > Math.PI) x -= Math.PI * 2
-  while (x < -Math.PI) x += Math.PI * 2
+  while (x > Math.PI) {x -= Math.PI * 2}
+  while (x < -Math.PI) {x += Math.PI * 2}
   return x
 }
 
 function pickBehavior(): BugBehaviorType {
   const r = Math.random()
-  if (r < 0.6) return 'social'
-  if (r < 0.9) return 'edgeDweller'
+  if (r < 0.6) {return 'social'}
+  if (r < 0.9) {return 'edgeDweller'}
   return 'loner'
 }
 
 function pickSizeScale(): number {
   const r = Math.random()
-  if (r < 0.2) return 0.7
-  if (r < 0.7) return 0.85
+  if (r < 0.2) {return 0.7}
+  if (r < 0.7) {return 0.85}
   return 1.0
 }
 
@@ -103,7 +103,7 @@ function solveTwoBoneIK(
   const dx = fx - ax
   const dy = fy - ay
   let c = Math.hypot(dx, dy)
-  if (c > l1 + l2) c = l1 + l2
+  if (c > l1 + l2) {c = l1 + l2}
   c = Math.max(c, 0.0001)
   const toTargetAngle = Math.atan2(dy, dx)
   let cosAngle = (l1 * l1 + c * c - l2 * l2) / (2 * l1 * c)
@@ -208,7 +208,7 @@ export class BugSystem {
     this.targetCount = clamp(initialCount, 0, BUG_MAX_COUNT)
     this.grid = new BugSpatialGrid(BUG_GRID_CELL_SIZE)
     this.pheromones = new BugPheromoneField(worldWidth, worldHeight, BUG_PHEROMONE_CELL_SIZE)
-    for (let i = 0; i < this.targetCount; i++) this.bugs.push(this.createBug(worldWidth, worldHeight))
+    for (let i = 0; i < this.targetCount; i++) {this.bugs.push(this.createBug(worldWidth, worldHeight))}
   }
 
   getBugs(): BugEntity[] {
@@ -239,7 +239,7 @@ export class BugSystem {
   }
 
   startLogoCarry(startX: number, startY: number, targetX: number, targetY: number): void {
-    for (const b of this.bugs) b.isCarrier = false
+    for (const b of this.bugs) {b.isCarrier = false}
     this.logoCarry.active = true
     this.logoCarry.hidden = false
     this.logoCarry.startX = startX
@@ -277,7 +277,7 @@ export class BugSystem {
     while (this.bugs.length < need) {
       this.bugs.push(this.createBug(Math.max(targetX, startX) + 120, Math.max(targetY, startY) + 120))
     }
-    const sorted = [...this.bugs].sort((a, b) => {
+    const sorted = [...this.bugs].toSorted((a, b) => {
       const da = Math.hypot(a.x - startX, a.y - startY)
       const db = Math.hypot(b.x - startX, b.y - startY)
       return da - db
@@ -309,7 +309,7 @@ export class BugSystem {
     this.logoCarry.displayVy = 0
     this.logoCarry.displayAngle = 0
     this.logoCarry.displayAngularV = 0
-    for (const b of this.bugs) b.isCarrier = false
+    for (const b of this.bugs) {b.isCarrier = false}
   }
 
   getLogoCarryVisual(): { active: boolean; dx: number; dy: number; angle: number; hidden: boolean } {
@@ -327,7 +327,7 @@ export class BugSystem {
 
   update(dt: number, worldWidth: number, worldHeight: number): void {
     this.reconcileCount(worldWidth, worldHeight)
-    if (!this.enabled || dt <= 0) return
+    if (!this.enabled || dt <= 0) {return}
     this.pheromones.resize(worldWidth, worldHeight)
     this.pheromones.update(dt, BUG_PHEROMONE_EVAPORATION_PER_SEC)
     this.updateLogoCarryCrew(dt, worldWidth, worldHeight)
@@ -335,7 +335,7 @@ export class BugSystem {
     const centerX = worldWidth / 2
     const centerY = worldHeight / 2
     this.grid.clear()
-    for (const bug of this.bugs) this.grid.add(bug)
+    for (const bug of this.bugs) {this.grid.add(bug)}
 
     for (const bug of this.bugs) {
       bug.wanderTimer -= dt
@@ -401,8 +401,8 @@ export class BugSystem {
 
       if (bug.speed > 0.1) {
         bug.gaitTimer += BUG_LEG_UPDATE_INTERVAL_SEC * (bug.speed / BUG_MAX_SPEED) * 8.0
-        if (bug.speed < BUG_MAX_SPEED * 0.5) bug.gaitTimer += BUG_LEG_UPDATE_INTERVAL_SEC * 0.8
-        if (bug.speed > BUG_MAX_SPEED * 1.2) bug.gaitTimer += BUG_LEG_UPDATE_INTERVAL_SEC * 2.0
+        if (bug.speed < BUG_MAX_SPEED * 0.5) {bug.gaitTimer += BUG_LEG_UPDATE_INTERVAL_SEC * 0.8}
+        if (bug.speed > BUG_MAX_SPEED * 1.2) {bug.gaitTimer += BUG_LEG_UPDATE_INTERVAL_SEC * 2.0}
         if (bug.gaitTimer > 1.0) {
           bug.gaitTimer = 0
           bug.activeLegGroup = bug.activeLegGroup === 0 ? 1 : 0
@@ -458,7 +458,7 @@ export class BugSystem {
         leg.stepT = Math.min(1, leg.stepT + (1 / leg.stepDuration) * 0.016)
         leg.footX = leg.stepFromX + (leg.stepToX - leg.stepFromX) * leg.stepT
         leg.footY = leg.stepFromY + (leg.stepToY - leg.stepFromY) * leg.stepT
-        if (leg.stepT >= 1) leg.stepping = false
+        if (leg.stepT >= 1) {leg.stepping = false}
       }
 
       const knee = solveTwoBoneIK(
@@ -474,8 +474,8 @@ export class BugSystem {
   }
 
   private reconcileCount(worldWidth: number, worldHeight: number): void {
-    while (this.bugs.length < this.targetCount) this.bugs.push(this.createBug(worldWidth, worldHeight))
-    while (this.bugs.length > this.targetCount) this.bugs.pop()
+    while (this.bugs.length < this.targetCount) {this.bugs.push(this.createBug(worldWidth, worldHeight))}
+    while (this.bugs.length > this.targetCount) {this.bugs.pop()}
   }
 
   private computeBoidsHeading(
@@ -497,11 +497,11 @@ export class BugSystem {
     const separationSq = BUG_SEPARATION_RADIUS * BUG_SEPARATION_RADIUS
 
     for (const other of nearby) {
-      if (other.id === bug.id) continue
+      if (other.id === bug.id) {continue}
       const dx = bug.x - other.x
       const dy = bug.y - other.y
       const distSq = dx * dx + dy * dy
-      if (distSq <= 0.0001 || distSq > perceptionSq) continue
+      if (distSq <= 0.0001 || distSq > perceptionSq) {continue}
 
       nCount++
       cohX += other.x
@@ -609,19 +609,19 @@ export class BugSystem {
       const bottom = worldHeight - bug.y
       const minD = Math.min(left, right, top, bottom)
       if (minD > 0) {
-        if (minD === left) fx -= edgeW
-        else if (minD === right) fx += edgeW
-        else if (minD === top) fy -= edgeW
-        else fy += edgeW
+        if (minD === left) {fx -= edgeW}
+        else if (minD === right) {fx += edgeW}
+        else if (minD === top) {fy -= edgeW}
+        else {fy += edgeW}
       }
     }
 
-    if (Math.abs(fx) < 0.0001 && Math.abs(fy) < 0.0001) return null
+    if (Math.abs(fx) < 0.0001 && Math.abs(fy) < 0.0001) {return null}
     return Math.atan2(fy, fx)
   }
 
   private updateLogoCarryVisual(dt: number, worldWidth: number, worldHeight: number): void {
-    if (!this.logoCarry.active) return
+    if (!this.logoCarry.active) {return}
     const toTargetX = this.logoCarry.targetX - this.logoCarry.logoX
     const toTargetY = this.logoCarry.targetY - this.logoCarry.logoY
     const toTargetLen = Math.hypot(toTargetX, toTargetY)
@@ -637,7 +637,7 @@ export class BugSystem {
     let n = 0
 
     for (const b of this.bugs) {
-      if (!b.isCarrier) continue
+      if (!b.isCarrier) {continue}
       const dx = this.logoCarry.logoX - b.x
       const dy = this.logoCarry.logoY - b.y
       const dist = Math.hypot(dx, dy)
@@ -663,7 +663,7 @@ export class BugSystem {
       const damping = 0.86
       this.logoCarry.wobblePhase += dt * 7.5
       let drive = pull * 24
-      if (this.logoCarry.pauseTimer > 0) drive *= 0.2
+      if (this.logoCarry.pauseTimer > 0) {drive *= 0.2}
       const wobble = Math.sin(this.logoCarry.wobblePhase) * 0.55
       const latDrive = lateral * 5.5 + this.logoCarry.sideBias * 1.2 + wobble
       this.logoCarry.logoVx = this.logoCarry.logoVx * damping + (tnx * drive + pnx * latDrive) / mass
@@ -707,7 +707,7 @@ export class BugSystem {
   }
 
   private updateLogoCarryCrew(dt: number, worldWidth: number, worldHeight: number): void {
-    if (!this.logoCarry.active) return
+    if (!this.logoCarry.active) {return}
 
     this.logoCarry.countTimer -= dt
     this.logoCarry.swapTimer -= dt
@@ -718,7 +718,7 @@ export class BugSystem {
 
     if (this.logoCarry.detourAngle !== 0) {
       this.logoCarry.detourAngle *= Math.max(0, 1 - dt * 2.2)
-      if (Math.abs(this.logoCarry.detourAngle) < 0.02) this.logoCarry.detourAngle = 0
+      if (Math.abs(this.logoCarry.detourAngle) < 0.02) {this.logoCarry.detourAngle = 0}
     }
 
     if (this.logoCarry.pauseTimer <= 0) {
@@ -745,12 +745,12 @@ export class BugSystem {
     }
 
     const need = LOGO_CARRY_FIXED_COUNT
-    while (this.bugs.length < need) this.bugs.push(this.createBug(worldWidth, worldHeight))
+    while (this.bugs.length < need) {this.bugs.push(this.createBug(worldWidth, worldHeight))}
 
     const currentCarriers = this.bugs.filter((b) => b.isCarrier)
     if (currentCarriers.length > need) {
       const drop = currentCarriers
-        .sort((a, b) => Math.random() - 0.5)
+        .toSorted((a, b) => Math.random() - 0.5)
         .slice(0, currentCarriers.length - need)
       for (const b of drop) {
         b.isCarrier = false
@@ -760,7 +760,7 @@ export class BugSystem {
       const missing = need - currentCarriers.length
       const candidates = this.bugs
         .filter((b) => !b.isCarrier)
-        .sort((a, b) => {
+        .toSorted((a, b) => {
           const da = Math.hypot(a.x - this.logoCarry.logoX, a.y - this.logoCarry.logoY)
           const db = Math.hypot(b.x - this.logoCarry.logoX, b.y - this.logoCarry.logoY)
           return da - db
@@ -778,14 +778,14 @@ export class BugSystem {
       const carriers = this.bugs.filter((b) => b.isCarrier)
       const canDrop = Math.max(1, carriers.length - LOGO_CARRY_FIXED_COUNT)
       const dropCount = Math.min(canDrop, Math.floor(randomRange(1, 3)))
-      const drop = carriers.sort((a, b) => Math.random() - 0.5).slice(0, dropCount)
+      const drop = carriers.toSorted((a, b) => Math.random() - 0.5).slice(0, dropCount)
       for (const b of drop) {
         b.isCarrier = false
         this.logoCarry.carrierIds.delete(b.id)
       }
       const refill = this.bugs
         .filter((b) => !b.isCarrier)
-        .sort((a, b) => {
+        .toSorted((a, b) => {
           const da = Math.hypot(a.x - this.logoCarry.logoX, a.y - this.logoCarry.logoY)
           const db = Math.hypot(b.x - this.logoCarry.logoX, b.y - this.logoCarry.logoY)
           return da - db
@@ -812,7 +812,7 @@ export class BugSystem {
       const carriers = this.bugs.filter((b) => b.isCarrier)
       if (carriers.length > 0) {
         const regripCount = Math.min(2, carriers.length)
-        const shuffled = carriers.sort(() => Math.random() - 0.5)
+        const shuffled = carriers.toSorted(() => Math.random() - 0.5)
         for (let i = 0; i < regripCount; i++) {
           const b = shuffled[i]
           this.logoCarry.regripUntil.set(b.id, randomRange(0.12, 0.32))
@@ -824,13 +824,13 @@ export class BugSystem {
     // Countdown transient states.
     for (const [id, left] of [...this.logoCarry.laggers.entries()]) {
       const next = left - dt
-      if (next <= 0) this.logoCarry.laggers.delete(id)
-      else this.logoCarry.laggers.set(id, next)
+      if (next <= 0) {this.logoCarry.laggers.delete(id)}
+      else {this.logoCarry.laggers.set(id, next)}
     }
     for (const [id, left] of [...this.logoCarry.regripUntil.entries()]) {
       const next = left - dt
-      if (next <= 0) this.logoCarry.regripUntil.delete(id)
-      else this.logoCarry.regripUntil.set(id, next)
+      if (next <= 0) {this.logoCarry.regripUntil.delete(id)}
+      else {this.logoCarry.regripUntil.set(id, next)}
     }
   }
 
@@ -955,11 +955,11 @@ export class BugSystem {
     const regrip = (this.logoCarry.regripUntil.get(bug.id) ?? 0) > 0
     const lagging = (this.logoCarry.laggers.get(bug.id) ?? 0) > 0
     let scale = 1
-    if (roleCode < 5) scale = 1.03
-    else if (roleCode < 8) scale = 0.96
-    else scale = 0.92
-    if (lagging) scale *= 1.12
-    if (regrip) scale *= 0.62
+    if (roleCode < 5) {scale = 1.03}
+    else if (roleCode < 8) {scale = 0.96}
+    else {scale = 0.92}
+    if (lagging) {scale *= 1.12}
+    if (regrip) {scale *= 0.62}
     return scale
   }
 
@@ -968,8 +968,8 @@ export class BugSystem {
   }
 
   private getDepositScale(behavior: BugBehaviorType): number {
-    if (behavior === 'loner') return 1.6
-    if (behavior === 'social') return 1.0
+    if (behavior === 'loner') {return 1.6}
+    if (behavior === 'social') {return 1.0}
     return 0.25
   }
 

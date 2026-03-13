@@ -180,7 +180,7 @@ const CAT_UP_2: SpriteData = [
 
 /** Flip a sprite horizontally to generate left-facing from right-facing */
 function flipH(sprite: SpriteData): SpriteData {
-  return sprite.map((row) => [...row].reverse())
+  return sprite.map((row) => [...row].toReversed())
 }
 
 const CAT_LEFT_1 = flipH(CAT_RIGHT_1)

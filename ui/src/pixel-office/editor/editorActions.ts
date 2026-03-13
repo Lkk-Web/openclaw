@@ -7,18 +7,18 @@ import { getPlacementBlockedTiles } from '../layout/layoutSerializer'
 /** Paint a single tile with pattern and color. Returns new layout (immutable). */
 export function paintTile(layout: OfficeLayout, col: number, row: number, tileType: TileTypeVal, color?: FloorColor): OfficeLayout {
   const idx = row * layout.cols + col
-  if (idx < 0 || idx >= layout.tiles.length) return layout
+  if (idx < 0 || idx >= layout.tiles.length) {return layout}
 
   const existingColors = layout.tileColors || new Array(layout.tiles.length).fill(null)
   const newColor = color ?? (tileType === TileType.WALL || tileType === TileType.VOID ? null : { ...DEFAULT_NEUTRAL_COLOR })
 
   if (layout.tiles[idx] === tileType) {
     const existingColor = existingColors[idx]
-    if (newColor === null && existingColor === null) return layout
+    if (newColor === null && existingColor === null) {return layout}
     if (newColor && existingColor &&
       newColor.h === existingColor.h && newColor.s === existingColor.s &&
       newColor.b === existingColor.b && newColor.c === existingColor.c &&
-      !!newColor.colorize === !!existingColor.colorize) return layout
+      !!newColor.colorize === !!existingColor.colorize) {return layout}
   }
 
   const tiles = [...layout.tiles]
@@ -30,22 +30,22 @@ export function paintTile(layout: OfficeLayout, col: number, row: number, tileTy
 
 /** Place furniture. Returns new layout (immutable). */
 export function placeFurniture(layout: OfficeLayout, item: PlacedFurniture): OfficeLayout {
-  if (!canPlaceFurniture(layout, item.type, item.col, item.row)) return layout
+  if (!canPlaceFurniture(layout, item.type, item.col, item.row)) {return layout}
   return { ...layout, furniture: [...layout.furniture, item] }
 }
 
 /** Remove furniture by uid. Returns new layout (immutable). */
 export function removeFurniture(layout: OfficeLayout, uid: string): OfficeLayout {
   const filtered = layout.furniture.filter((f) => f.uid !== uid)
-  if (filtered.length === layout.furniture.length) return layout
+  if (filtered.length === layout.furniture.length) {return layout}
   return { ...layout, furniture: filtered }
 }
 
 /** Move furniture to new position. Returns new layout (immutable). */
 export function moveFurniture(layout: OfficeLayout, uid: string, newCol: number, newRow: number): OfficeLayout {
   const item = layout.furniture.find((f) => f.uid === uid)
-  if (!item) return layout
-  if (!canPlaceFurniture(layout, item.type, newCol, newRow, uid)) return layout
+  if (!item) {return layout}
+  if (!canPlaceFurniture(layout, item.type, newCol, newRow, uid)) {return layout}
   return {
     ...layout,
     furniture: layout.furniture.map((f) => (f.uid === uid ? { ...f, col: newCol, row: newRow } : f)),
@@ -55,9 +55,9 @@ export function moveFurniture(layout: OfficeLayout, uid: string, newCol: number,
 /** Rotate furniture to the next orientation. Returns new layout (immutable). */
 export function rotateFurniture(layout: OfficeLayout, uid: string, direction: 'cw' | 'ccw'): OfficeLayout {
   const item = layout.furniture.find((f) => f.uid === uid)
-  if (!item) return layout
+  if (!item) {return layout}
   const newType = getRotatedType(item.type, direction)
-  if (!newType) return layout
+  if (!newType) {return layout}
   return {
     ...layout,
     furniture: layout.furniture.map((f) => (f.uid === uid ? { ...f, type: newType } : f)),
@@ -67,9 +67,9 @@ export function rotateFurniture(layout: OfficeLayout, uid: string, direction: 'c
 /** Toggle furniture state (on/off). Returns new layout (immutable). */
 export function toggleFurnitureState(layout: OfficeLayout, uid: string): OfficeLayout {
   const item = layout.furniture.find((f) => f.uid === uid)
-  if (!item) return layout
+  if (!item) {return layout}
   const newType = getToggledType(item.type)
-  if (!newType) return layout
+  if (!newType) {return layout}
   return {
     ...layout,
     furniture: layout.furniture.map((f) => (f.uid === uid ? { ...f, type: newType } : f)),
@@ -79,7 +79,7 @@ export function toggleFurnitureState(layout: OfficeLayout, uid: string): OfficeL
 /** For wall items, offset the row so the bottom row aligns with the hovered tile. */
 export function getWallPlacementRow(type: string, row: number): number {
   const entry = getCatalogEntry(type)
-  if (!entry?.canPlaceOnWalls) return row
+  if (!entry?.canPlaceOnWalls) {return row}
   return row - (entry.footprintH - 1)
 }
 
@@ -92,7 +92,7 @@ export function canPlaceFurniture(
   excludeUid?: string,
 ): boolean {
   const entry = getCatalogEntry(type)
-  if (!entry) return false
+  if (!entry) {return false}
 
   if (entry.canPlaceOnWalls) {
     const bottomRow = row + entry.footprintH - 1
@@ -107,17 +107,17 @@ export function canPlaceFurniture(
 
   const bgRows = entry.backgroundTiles || 0
   for (let dr = 0; dr < entry.footprintH; dr++) {
-    if (dr < bgRows) continue
-    if (row + dr < 0) continue
-    if (entry.canPlaceOnWalls && dr < entry.footprintH - 1) continue
+    if (dr < bgRows) {continue}
+    if (row + dr < 0) {continue}
+    if (entry.canPlaceOnWalls && dr < entry.footprintH - 1) {continue}
     for (let dc = 0; dc < entry.footprintW; dc++) {
       const idx = (row + dr) * layout.cols + (col + dc)
       const tileVal = layout.tiles[idx]
       if (entry.canPlaceOnWalls) {
-        if (tileVal !== TileType.WALL) return false
+        if (tileVal !== TileType.WALL) {return false}
       } else {
-        if (tileVal === TileType.VOID) return false
-        if (tileVal === TileType.WALL) return false
+        if (tileVal === TileType.VOID) {return false}
+        if (tileVal === TileType.WALL) {return false}
       }
     }
   }
@@ -128,9 +128,9 @@ export function canPlaceFurniture(
   if (entry.canPlaceOnSurfaces) {
     deskTiles = new Set<string>()
     for (const item of layout.furniture) {
-      if (item.uid === excludeUid) continue
+      if (item.uid === excludeUid) {continue}
       const itemEntry = getCatalogEntry(item.type)
-      if (!itemEntry || !itemEntry.isDesk) continue
+      if (!itemEntry || !itemEntry.isDesk) {continue}
       for (let dr = 0; dr < itemEntry.footprintH; dr++) {
         for (let dc = 0; dc < itemEntry.footprintW; dc++) {
           deskTiles.add(`${item.col + dc},${item.row + dr}`)
@@ -141,11 +141,11 @@ export function canPlaceFurniture(
 
   const newBgRows = entry.backgroundTiles || 0
   for (let dr = 0; dr < entry.footprintH; dr++) {
-    if (dr < newBgRows) continue
-    if (row + dr < 0) continue
+    if (dr < newBgRows) {continue}
+    if (row + dr < 0) {continue}
     for (let dc = 0; dc < entry.footprintW; dc++) {
       const key = `${col + dc},${row + dr}`
-      if (occupied.has(key) && !(deskTiles?.has(key))) return false
+      if (occupied.has(key) && !(deskTiles?.has(key))) {return false}
     }
   }
 
@@ -182,7 +182,7 @@ export function expandLayout(
     shiftRow = 1
   }
 
-  if (newCols > MAX_COLS || newRows > MAX_ROWS) return null
+  if (newCols > MAX_COLS || newRows > MAX_ROWS) {return null}
 
   const newTiles: TileTypeVal[] = new Array(newCols * newRows).fill(TileType.VOID as TileTypeVal)
   const newColors: Array<FloorColor | null> = new Array(newCols * newRows).fill(null)

@@ -17,7 +17,7 @@ export function startGameLoop(
   let stopped = false
 
   const frame = (time: number) => {
-    if (stopped) return
+    if (stopped) {return}
     const dt = lastTime === 0 ? 0 : Math.min((time - lastTime) / 1000, MAX_DELTA_TIME_SEC)
     lastTime = time
 

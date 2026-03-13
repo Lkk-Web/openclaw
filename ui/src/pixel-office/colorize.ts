@@ -8,7 +8,7 @@ const colorizeCache = new Map<string, SpriteData>()
 
 export function getColorizedSprite(cacheKey: string, sprite: SpriteData, color: FloorColor): SpriteData {
   const cached = colorizeCache.get(cacheKey)
-  if (cached) return cached
+  if (cached) {return cached}
   const result = color.colorize ? colorizeSprite(sprite, color) : adjustSprite(sprite, color)
   colorizeCache.set(cacheKey, result)
   return result
@@ -67,13 +67,13 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
   const rf = r / 255, gf = g / 255, bf = b / 255
   const max = Math.max(rf, gf, bf), min = Math.min(rf, gf, bf)
   const l = (max + min) / 2
-  if (max === min) return [0, 0, l]
+  if (max === min) {return [0, 0, l]}
   const d = max - min
   const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
   let h = 0
-  if (max === rf) h = ((gf - bf) / d + (gf < bf ? 6 : 0)) * 60
-  else if (max === gf) h = ((bf - rf) / d + 2) * 60
-  else h = ((rf - gf) / d + 4) * 60
+  if (max === rf) {h = ((gf - bf) / d + (gf < bf ? 6 : 0)) * 60}
+  else if (max === gf) {h = ((bf - rf) / d + 2) * 60}
+  else {h = ((rf - gf) / d + 4) * 60}
   return [h, s, l]
 }
 

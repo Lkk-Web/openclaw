@@ -29,7 +29,7 @@ function seatGridRow(seat: Seat): number { return Math.round(seat.seatRow) }
 const READING_TOOLS = new Set(['Read', 'Grep', 'Glob', 'WebFetch', 'WebSearch'])
 
 export function isReadingTool(tool: string | null): boolean {
-  if (!tool) return false
+  if (!tool) {return false}
   return READING_TOOLS.has(tool)
 }
 
@@ -45,9 +45,9 @@ function tileCenter(col: number, row: number): { x: number; y: number } {
 function directionBetween(fromCol: number, fromRow: number, toCol: number, toRow: number): Direction {
   const dc = toCol - fromCol
   const dr = toRow - fromRow
-  if (dc > 0) return Direction.RIGHT
-  if (dc < 0) return Direction.LEFT
-  if (dr > 0) return Direction.DOWN
+  if (dc > 0) {return Direction.RIGHT}
+  if (dc < 0) {return Direction.LEFT}
+  if (dr > 0) {return Direction.DOWN}
   return Direction.UP
 }
 
@@ -147,7 +147,7 @@ export function updateCharacter(
     case CharacterState.IDLE: {
       // No idle animation — static pose
       ch.frame = 0
-      if (ch.seatTimer < 0) ch.seatTimer = 0 // clear turn-end sentinel
+      if (ch.seatTimer < 0) {ch.seatTimer = 0} // clear turn-end sentinel
       // If became active, pathfind to seat
       if (ch.isActive) {
         if (!ch.seatId) {

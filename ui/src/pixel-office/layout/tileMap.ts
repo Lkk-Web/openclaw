@@ -9,10 +9,10 @@ export function isWalkable(
 ): boolean {
   const rows = tileMap.length
   const cols = rows > 0 ? tileMap[0].length : 0
-  if (row < 0 || row >= rows || col < 0 || col >= cols) return false
+  if (row < 0 || row >= rows || col < 0 || col >= cols) {return false}
   const t = tileMap[row][col]
-  if (t === TileType.WALL || t === TileType.VOID) return false
-  if (blockedTiles.has(`${col},${row}`)) return false
+  if (t === TileType.WALL || t === TileType.VOID) {return false}
+  if (blockedTiles.has(`${col},${row}`)) {return false}
   return true
 }
 
@@ -43,7 +43,7 @@ export function findPath(
   tileMap: TileType[][],
   blockedTiles: Set<string>,
 ): Array<{ col: number; row: number }> {
-  if (startCol === endCol && startRow === endRow) return []
+  if (startCol === endCol && startRow === endRow) {return []}
 
   const key = (c: number, r: number) => `${c},${r}`
   const startKey = key(startCol, startRow)
@@ -91,8 +91,8 @@ export function findPath(
       const nr = curr.row + d.dr
       const nk = key(nc, nr)
 
-      if (visited.has(nk)) continue
-      if (!isWalkable(nc, nr, tileMap, blockedTiles)) continue
+      if (visited.has(nk)) {continue}
+      if (!isWalkable(nc, nr, tileMap, blockedTiles)) {continue}
 
       visited.add(nk)
       parent.set(nk, currKey)

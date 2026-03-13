@@ -70,8 +70,8 @@ function normalizedSpriteData(img: HTMLImageElement, targetWidth?: number, targe
 }
 
 function stripOpaqueSheetBackground(sprite: SpriteData): SpriteData {
-  if (sprite.length === 0 || sprite[0].length === 0) return sprite
-  if (sprite.some((row) => row.some((pixel) => pixel === ''))) return sprite
+  if (sprite.length === 0 || sprite[0].length === 0) {return sprite}
+  if (sprite.some((row) => row.some((pixel) => pixel === ''))) {return sprite}
 
   const height = sprite.length
   const width = sprite[0].length
@@ -90,8 +90,8 @@ function stripOpaqueSheetBackground(sprite: SpriteData): SpriteData {
   const threshold = Math.max(140, Math.min(...corners.map((pixel) => brightness(pixel))) - 12)
 
   const enqueue = (x: number, y: number) => {
-    if (visited[y][x]) return
-    if (brightness(result[y][x]) < threshold) return
+    if (visited[y][x]) {return}
+    if (brightness(result[y][x]) < threshold) {return}
     visited[y][x] = true
     queue.push([x, y])
   }
@@ -108,10 +108,10 @@ function stripOpaqueSheetBackground(sprite: SpriteData): SpriteData {
   while (queue.length > 0) {
     const [x, y] = queue.shift()!
     result[y][x] = ''
-    if (x > 0) enqueue(x - 1, y)
-    if (x + 1 < width) enqueue(x + 1, y)
-    if (y > 0) enqueue(x, y - 1)
-    if (y + 1 < height) enqueue(x, y + 1)
+    if (x > 0) {enqueue(x - 1, y)}
+    if (x + 1 < width) {enqueue(x + 1, y)}
+    if (y > 0) {enqueue(x, y - 1)}
+    if (y + 1 < height) {enqueue(x, y + 1)}
   }
 
   return result

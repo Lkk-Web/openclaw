@@ -189,10 +189,10 @@ export const SERVER_RACK_SPRITE: SpriteData = (() => {
   const rows: string[][] = Array.from({ length: H }, () => Array.from({ length: W }, () => BG))
 
   const px = (x: number, y: number, c: string) => {
-    if (x >= 0 && x < W && y >= 0 && y < H) rows[y][x] = c
+    if (x >= 0 && x < W && y >= 0 && y < H) {rows[y][x] = c}
   }
   const fill = (x: number, y: number, w: number, h: number, c: string) => {
-    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) px(xx, yy, c)
+    for (let yy = y; yy < y + h; yy++) {for (let xx = x; xx < x + w; xx++) {px(xx, yy, c)}}
   }
 
   const drawRack = (x0: number) => {
@@ -481,13 +481,13 @@ type TemplateCell = typeof H | typeof K | typeof S | typeof P | typeof O | typeo
 function resolveTemplate(template: TemplateCell[][], palette: CharPalette): SpriteData {
   return template.map((row) =>
     row.map((cell) => {
-      if (cell === _) return ''
-      if (cell === E) return E
-      if (cell === H) return palette.hair
-      if (cell === K) return palette.skin
-      if (cell === S) return palette.shirt
-      if (cell === P) return palette.pants
-      if (cell === O) return palette.shoes
+      if (cell === _) {return ''}
+      if (cell === E) {return E}
+      if (cell === H) {return palette.hair}
+      if (cell === K) {return palette.skin}
+      if (cell === S) {return palette.shirt}
+      if (cell === P) {return palette.pants}
+      if (cell === O) {return palette.shoes}
       return cell
     }),
   )
@@ -495,7 +495,7 @@ function resolveTemplate(template: TemplateCell[][], palette: CharPalette): Spri
 
 /** Flip a template horizontally (for generating left sprites from right) */
 function flipHorizontal(template: TemplateCell[][]): TemplateCell[][] {
-  return template.map((row) => [...row].reverse())
+  return template.map((row) => [...row].toReversed())
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1136,7 +1136,7 @@ export function setCharacterTemplates(data: LoadedCharacterData[]): void {
 
 /** Flip a SpriteData horizontally (for generating left sprites from right) */
 function flipSpriteHorizontal(sprite: SpriteData): SpriteData {
-  return sprite.map((row) => [...row].reverse())
+  return sprite.map((row) => [...row].toReversed())
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1184,7 +1184,7 @@ function hueShiftSprites(sprites: CharacterSprites, hueShift: number): Character
 export function getCharacterSprites(paletteIndex: number, hueShift = 0): CharacterSprites {
   const cacheKey = `${paletteIndex}:${hueShift}`
   const cached = spriteCache.get(cacheKey)
-  if (cached) return cached
+  if (cached) {return cached}
 
   let sprites: CharacterSprites
 

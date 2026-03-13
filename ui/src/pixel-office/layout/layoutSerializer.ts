@@ -23,13 +23,13 @@ export function layoutToFurnitureInstances(furniture: PlacedFurniture[]): Furnit
   const deskZByTile = new Map<string, number>()
   for (const item of furniture) {
     const entry = getCatalogEntry(item.type)
-    if (!entry || !entry.isDesk) continue
+    if (!entry || !entry.isDesk) {continue}
     const deskZY = item.row * TILE_SIZE + entry.sprite.length
     for (let dr = 0; dr < entry.footprintH; dr++) {
       for (let dc = 0; dc < entry.footprintW; dc++) {
         const key = `${item.col + dc},${item.row + dr}`
         const prev = deskZByTile.get(key)
-        if (prev === undefined || deskZY > prev) deskZByTile.set(key, deskZY)
+        if (prev === undefined || deskZY > prev) {deskZByTile.set(key, deskZY)}
       }
     }
   }
@@ -37,7 +37,7 @@ export function layoutToFurnitureInstances(furniture: PlacedFurniture[]): Furnit
   const instances: FurnitureInstance[] = []
   for (const item of furniture) {
     const entry = getCatalogEntry(item.type)
-    if (!entry) continue
+    if (!entry) {continue}
     const x = item.col * TILE_SIZE
     const y = item.row * TILE_SIZE
     const spriteH = entry.sprite.length
@@ -62,7 +62,7 @@ export function layoutToFurnitureInstances(furniture: PlacedFurniture[]): Furnit
         for (let dc = 0; dc < entry.footprintW; dc++) {
           const key = `${Math.round(item.col + dc)},${Math.round(item.row + dr)}`
           const deskZ = deskZByTile.get(key)
-          if (deskZ !== undefined && deskZ + 0.5 > zY) zY = deskZ + 0.5
+          if (deskZ !== undefined && deskZ + 0.5 > zY) {zY = deskZ + 0.5}
         }
       }
     }
@@ -93,13 +93,13 @@ export function getBlockedTiles(furniture: PlacedFurniture[], excludeTiles?: Set
   const tiles = new Set<string>()
   for (const item of furniture) {
     const entry = getCatalogEntry(item.type)
-    if (!entry) continue
+    if (!entry) {continue}
     const bgRows = entry.backgroundTiles || 0
     for (let dr = 0; dr < entry.footprintH; dr++) {
-      if (dr < bgRows) continue // skip background rows — characters can walk through
+      if (dr < bgRows) {continue} // skip background rows — characters can walk through
       for (let dc = 0; dc < entry.footprintW; dc++) {
         const key = `${item.col + dc},${item.row + dr}`
-        if (excludeTiles && excludeTiles.has(key)) continue
+        if (excludeTiles && excludeTiles.has(key)) {continue}
         tiles.add(key)
       }
     }
@@ -111,12 +111,12 @@ export function getBlockedTiles(furniture: PlacedFurniture[], excludeTiles?: Set
 export function getPlacementBlockedTiles(furniture: PlacedFurniture[], excludeUid?: string): Set<string> {
   const tiles = new Set<string>()
   for (const item of furniture) {
-    if (item.uid === excludeUid) continue
+    if (item.uid === excludeUid) {continue}
     const entry = getCatalogEntry(item.type)
-    if (!entry) continue
+    if (!entry) {continue}
     const bgRows = entry.backgroundTiles || 0
     for (let dr = 0; dr < entry.footprintH; dr++) {
-      if (dr < bgRows) continue // skip background rows
+      if (dr < bgRows) {continue} // skip background rows
       for (let dc = 0; dc < entry.footprintW; dc++) {
         tiles.add(`${item.col + dc},${item.row + dr}`)
       }
@@ -145,7 +145,7 @@ export function layoutToSeats(furniture: PlacedFurniture[]): Map<string, Seat> {
   const deskTiles = new Set<string>()
   for (const item of furniture) {
     const entry = getCatalogEntry(item.type)
-    if (!entry || !entry.isDesk) continue
+    if (!entry || !entry.isDesk) {continue}
     for (let dr = 0; dr < entry.footprintH; dr++) {
       for (let dc = 0; dc < entry.footprintW; dc++) {
         deskTiles.add(`${item.col + dc},${item.row + dr}`)
@@ -164,7 +164,7 @@ export function layoutToSeats(furniture: PlacedFurniture[]): Map<string, Seat> {
   // Multi-tile chairs (e.g. 2-tile couches) produce multiple seats.
   for (const item of furniture) {
     const entry = getCatalogEntry(item.type)
-    if (!entry || entry.category !== 'chairs') continue
+    if (!entry || entry.category !== 'chairs') {continue}
 
     let seatCount = 0
     for (let dr = 0; dr < entry.footprintH; dr++) {
@@ -244,11 +244,11 @@ const LEFT_WALL_SERVER: Readonly<PlacedFurniture> = {
 }
 
 function shouldRemoveRightOfficeLegacyItems(item: PlacedFurniture): boolean {
-  if (item.uid.startsWith('stool-r')) return true
-  if (item.uid === 'plant-r1' || item.uid === 'lamp-r' || item.uid === 'cooler-r') return true
-  if (item.type === FurnitureType.PLANT && item.col === 19 && item.row === 3) return true
-  if (item.type === FurnitureType.LAMP && item.col === 19 && item.row === 7) return true
-  if (item.type === FurnitureType.COOLER && item.col === 18 && item.row === 7) return true
+  if (item.uid.startsWith('stool-r')) {return true}
+  if (item.uid === 'plant-r1' || item.uid === 'lamp-r' || item.uid === 'cooler-r') {return true}
+  if (item.type === FurnitureType.PLANT && item.col === 19 && item.row === 3) {return true}
+  if (item.type === FurnitureType.LAMP && item.col === 19 && item.row === 7) {return true}
+  if (item.type === FurnitureType.COOLER && item.col === 18 && item.row === 7) {return true}
   return false
 }
 
@@ -257,7 +257,7 @@ function normalizeRightOfficeFurniture(furniture: PlacedFurniture[]): PlacedFurn
   const next = [...base]
   for (const stool of RIGHT_WALL_STOOLS) {
     const exists = next.some((item) => item.uid === stool.uid)
-    if (!exists) next.push({ ...stool })
+    if (!exists) {next.push({ ...stool })}
   }
   if (!next.some((item) => item.uid === LEFT_WALL_SERVER.uid)) {
     next.push({ ...LEFT_WALL_SERVER })
@@ -417,7 +417,7 @@ function migrateLayout(layout: OfficeLayout): OfficeLayout {
     const furnitureChanged =
       furniture.length !== layout.furniture.length ||
       furniture.some((item, index) => item !== layout.furniture[index])
-    if (!furnitureChanged) return layout
+    if (!furnitureChanged) {return layout}
     return { ...layout, furniture }
   }
 
@@ -475,7 +475,7 @@ export function getInteractionPoints(
   const points: InteractionPoint[] = []
   for (const item of furniture) {
     const entry = getCatalogEntry(item.type)
-    if (!entry || !INTERACTABLE_TYPES.has(item.type as any)) continue
+    if (!entry || !INTERACTABLE_TYPES.has(item.type as any)) {continue}
     // Check tiles along the bottom edge + 1 row below the furniture
     for (let dc = 0; dc < entry.footprintW; dc++) {
       const belowCol = Math.round(item.col + dc)

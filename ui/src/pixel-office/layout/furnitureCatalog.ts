@@ -121,7 +121,7 @@ let dynamicCategories: FurnitureCategory[] | null = null
  * Uses ONLY custom assets (excludes hardcoded furniture when assets are loaded).
  */
 export function buildDynamicCatalog(assets: LoadedAssetData): boolean {
-  if (!assets?.catalog || !assets?.sprites) return false
+  if (!assets?.catalog || !assets?.sprites) {return false}
 
   // Build all entries (including non-front variants)
   const allEntries = assets.catalog.map((asset) => {
@@ -145,7 +145,7 @@ export function buildDynamicCatalog(assets: LoadedAssetData): boolean {
     }
   }).filter((e): e is CatalogEntryWithCategory => e !== null)
 
-  if (allEntries.length === 0) return false
+  if (allEntries.length === 0) {return false}
 
   // Build rotation groups from groupId + orientation metadata
   rotationGroups.clear()
@@ -158,7 +158,7 @@ export function buildDynamicCatalog(assets: LoadedAssetData): boolean {
   for (const asset of assets.catalog) {
     if (asset.groupId && asset.orientation) {
       // For rotation groups, only use the "off" or stateless variant
-      if (asset.state && asset.state !== 'off') continue
+      if (asset.state && asset.state !== 'off') {continue}
       let orientMap = groupMap.get(asset.groupId)
       if (!orientMap) {
         orientMap = new Map()
@@ -172,10 +172,10 @@ export function buildDynamicCatalog(assets: LoadedAssetData): boolean {
   const nonFrontIds = new Set<string>()
   const orientationOrder = ['front', 'right', 'back', 'left']
   for (const orientMap of groupMap.values()) {
-    if (orientMap.size < 2) continue
+    if (orientMap.size < 2) {continue}
     // Build ordered list of available orientations
     const orderedOrients = orientationOrder.filter((o) => orientMap.has(o))
-    if (orderedOrients.length < 2) continue
+    if (orderedOrients.length < 2) {continue}
     const members: Record<string, string> = {}
     for (const o of orderedOrients) {
       members[o] = orientMap.get(o)!
@@ -186,7 +186,7 @@ export function buildDynamicCatalog(assets: LoadedAssetData): boolean {
     }
     // Track non-front IDs to exclude from visible catalog
     for (const [orient, id] of Object.entries(members)) {
-      if (orient !== 'front') nonFrontIds.add(id)
+      if (orient !== 'front') {nonFrontIds.add(id)}
     }
   }
 
@@ -244,7 +244,7 @@ export function buildDynamicCatalog(assets: LoadedAssetData): boolean {
   // Track "on" variant IDs to exclude from visible catalog
   const onStateIds = new Set<string>()
   for (const asset of assets.catalog) {
-    if (asset.state === 'on') onStateIds.add(asset.id)
+    if (asset.state === 'on') {onStateIds.add(asset.id)}
   }
 
   // Store full internal catalog (all variants — for getCatalogEntry lookups)
@@ -266,7 +266,7 @@ export function buildDynamicCatalog(assets: LoadedAssetData): boolean {
   dynamicCatalog = visibleEntries
   dynamicCategories = Array.from(new Set(visibleEntries.map((e) => e.category)))
     .filter((c): c is FurnitureCategory => !!c)
-    .sort()
+    .toSorted()
 
   const rotGroupCount = new Set(Array.from(rotationGroups.values())).size
   console.log(`✓ Built dynamic catalog with ${allEntries.length} assets (${visibleEntries.length} visible, ${rotGroupCount} rotation groups, ${stateGroups.size / 2} state pairs)`)
@@ -292,7 +292,7 @@ export function getActiveCatalog(): CatalogEntryWithCategory[] {
 }
 
 export function getActiveCategories(): Array<{ id: FurnitureCategory; label: string }> {
-  const categories = dynamicCategories || (FURNITURE_CATEGORIES.map((c) => c.id) as FurnitureCategory[])
+  const categories = dynamicCategories || (FURNITURE_CATEGORIES.map((c) => c.id))
   return FURNITURE_CATEGORIES.filter((c) => categories.includes(c.id))
 }
 
@@ -311,10 +311,10 @@ export const FURNITURE_CATEGORIES: Array<{ id: FurnitureCategory; label: string 
 /** Returns the next asset ID in the rotation group (cw or ccw), or null if not rotatable. */
 export function getRotatedType(currentType: string, direction: 'cw' | 'ccw'): string | null {
   const group = rotationGroups.get(currentType)
-  if (!group) return null
+  if (!group) {return null}
   const order = group.orientations.map((o) => group.members[o])
   const idx = order.indexOf(currentType)
-  if (idx === -1) return null
+  if (idx === -1) {return null}
   const step = direction === 'cw' ? 1 : -1
   const nextIdx = (idx + step + order.length) % order.length
   return order[nextIdx]

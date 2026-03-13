@@ -51,14 +51,14 @@ async function fetchAgents(gatewayUrl?: string): Promise<AgentActivity[]> {
     // If we have a gateway URL, extract port/host for our own server
     // The API is served from the same host as the UI
     const res = await fetch(apiUrl, { cache: 'no-store' });
-    if (!res.ok) return [];
+    if (!res.ok) {return [];}
     const data = await res.json() as { agents?: AgentActivity[] };
     return data.agents || [];
   } catch {
     // In development/different deployment setups, try gateway data endpoint
     try {
       const res = await fetch('/gateway/agents/activity', { cache: 'no-store' });
-      if (!res.ok) return [];
+      if (!res.ok) {return [];}
       const data = await res.json() as { agents?: AgentActivity[] };
       return data.agents || [];
     } catch {
@@ -203,7 +203,7 @@ function startRenderLoop() {
         characters: office.characters,
       },
       undefined, // editor
-      undefined, // tileColors
+      office.layout.tileColors, // tileColors
       office.layout.cols,
       office.layout.rows,
       office.getBugs()

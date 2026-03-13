@@ -30,7 +30,7 @@ function buildDisplayAgents(rawAgents: AgentActivity[]): AgentActivity[] {
   const result: AgentActivity[] = [];
   for (const agent of rawAgents) {
     result.push(agent);
-    if (!agent.subagents?.length) continue;
+    if (!agent.subagents?.length) {continue;}
     for (const sub of agent.subagents) {
       const subKey = sub.sessionKey ? `${sub.sessionKey}::${sub.toolId}` : sub.toolId;
       result.push({

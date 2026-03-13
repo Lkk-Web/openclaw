@@ -32,10 +32,10 @@ export function setFloorSprites(sprites: SpriteData[]): void {
  *  Falls back to the default solid gray tile when floors.png is not loaded. */
 export function getFloorSprite(patternIndex: number): SpriteData | null {
   const idx = patternIndex - 1
-  if (idx < 0) return null
-  if (idx < floorSprites.length) return floorSprites[idx]
+  if (idx < 0) {return null}
+  if (idx < floorSprites.length) {return floorSprites[idx]}
   // No PNG sprites loaded — return default solid tile for any valid pattern index
-  if (floorSprites.length === 0 && patternIndex >= 1) return DEFAULT_FLOOR_SPRITE
+  if (floorSprites.length === 0 && patternIndex >= 1) {return DEFAULT_FLOOR_SPRITE}
   return null
 }
 

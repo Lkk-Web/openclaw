@@ -33,11 +33,11 @@ export class BugPheromoneField {
   }
 
   update(dt: number, evaporationPerSec: number): void {
-    if (dt <= 0) return
+    if (dt <= 0) {return}
     const keep = Math.max(0, 1 - evaporationPerSec * dt)
     for (let i = 0; i < this.data.length; i++) {
       this.data[i] *= keep
-      if (this.data[i] < 0.0001) this.data[i] = 0
+      if (this.data[i] < 0.0001) {this.data[i] = 0}
     }
   }
 
@@ -73,15 +73,15 @@ export class BugPheromoneField {
     for (let gx = cx - cr; gx <= cx + cr; gx++) {
       for (let gy = cy - cr; gy <= cy + cr; gy++) {
         const idx = this.index(gx, gy)
-        if (idx < 0) continue
+        if (idx < 0) {continue}
         const s = this.data[idx]
-        if (s <= 0) continue
+        if (s <= 0) {continue}
         const centerX = (gx + 0.5) * this.cellSize
         const centerY = (gy + 0.5) * this.cellSize
         const dx = centerX - x
         const dy = centerY - y
         const dist = Math.hypot(dx, dy)
-        if (dist > radius || dist <= 0.0001) continue
+        if (dist > radius || dist <= 0.0001) {continue}
         const w = s / (1 + dist * 0.1)
         fx += (dx / dist) * w
         fy += (dy / dist) * w
@@ -94,12 +94,12 @@ export class BugPheromoneField {
 
   private addToCell(cx: number, cy: number, value: number, maxStrength: number): void {
     const idx = this.index(cx, cy)
-    if (idx < 0) return
+    if (idx < 0) {return}
     this.data[idx] = Math.min(maxStrength, this.data[idx] + value)
   }
 
   private index(cx: number, cy: number): number {
-    if (cx < 0 || cy < 0 || cx >= this.cols || cy >= this.rows) return -1
+    if (cx < 0 || cy < 0 || cx >= this.cols || cy >= this.rows) {return -1}
     return cy * this.cols + cx
   }
 }

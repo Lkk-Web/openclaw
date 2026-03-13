@@ -320,7 +320,7 @@ const SRE_BLACKWORDS_EN = [
   'Recovering...',
   'Hold the SLA',
   'Drive MTTR down',
-  "Don\'t let it blow up",
+  "Don't let it blow up",
 ]
 
 const PHOTO_COMMENTS_EN = [
@@ -333,28 +333,28 @@ const PHOTO_COMMENTS_EN = [
 ]
 
 function getCodeSnippets(locale: OfficeLocale): string[] {
-  if (locale === 'zh-TW') return CODE_SNIPPETS_ZH_TW
-  if (locale === 'en') return CODE_SNIPPETS_EN
+  if (locale === 'zh-TW') {return CODE_SNIPPETS_ZH_TW}
+  if (locale === 'en') {return CODE_SNIPPETS_EN}
   return CODE_SNIPPETS_ZH
 }
 function getSreBlackwords(locale: OfficeLocale): string[] {
-  if (locale === 'zh-TW') return SRE_BLACKWORDS_ZH_TW
-  if (locale === 'en') return SRE_BLACKWORDS_EN
+  if (locale === 'zh-TW') {return SRE_BLACKWORDS_ZH_TW}
+  if (locale === 'en') {return SRE_BLACKWORDS_EN}
   return SRE_BLACKWORDS_ZH
 }
 function getPhotoComments(locale: OfficeLocale): string[] {
-  if (locale === 'zh-TW') return PHOTO_COMMENTS_ZH_TW
-  if (locale === 'en') return PHOTO_COMMENTS_EN
+  if (locale === 'zh-TW') {return PHOTO_COMMENTS_ZH_TW}
+  if (locale === 'en') {return PHOTO_COMMENTS_EN}
   return PHOTO_COMMENTS_ZH
 }
 function getTempWorkerLabel(locale: OfficeLocale): string {
-  if (locale === 'zh-TW') return '临时工'
-  if (locale === 'en') return 'Temp'
+  if (locale === 'zh-TW') {return '临时工'}
+  if (locale === 'en') {return 'Temp'}
   return '临时工'
 }
 function getGatewaySreLabel(locale: OfficeLocale): string {
-  if (locale === 'zh-TW') return '值班工程師'
-  if (locale === 'en') return 'On-Call SRE'
+  if (locale === 'zh-TW') {return '值班工程師'}
+  if (locale === 'en') {return 'On-Call SRE'}
   return '值班SRE'
 }
 const SUBAGENT_PRIORITY_SEAT_IDS = [
@@ -426,7 +426,7 @@ export class OfficeState {
     this.locale = locale
     // Re-label the SRE character if it exists
     const sre = this.characters.get(OfficeState.GATEWAY_SRE_ID)
-    if (sre) sre.label = getGatewaySreLabel(locale)
+    if (sre) {sre.label = getGatewaySreLabel(locale)}
     // Re-label any temp workers
     for (const [, ch] of this.characters) {
       if (ch.label === '临时工' || ch.label === '臨時工' || ch.label === 'Temp') {
@@ -440,7 +440,7 @@ export class OfficeState {
     // does not shrink idle wandering range.
     const nonBlockingSeatTiles = new Set<string>()
     for (const [seatId, seat] of this.seats.entries()) {
-      if (!seatId.startsWith('stool-r')) continue
+      if (!seatId.startsWith('stool-r')) {continue}
       nonBlockingSeatTiles.add(`${seat.seatCol},${seat.seatRow}`)
     }
     return getBlockedTiles(furniture, nonBlockingSeatTiles)
@@ -497,7 +497,7 @@ export class OfficeState {
 
     // First pass: try to keep characters at their existing seats
     for (const ch of this.characters.values()) {
-      if (ch.isCat || ch.isLobster || ch.isSystemRole) continue
+      if (ch.isCat || ch.isLobster || ch.isSystemRole) {continue}
       if (ch.seatId && this.seats.has(ch.seatId)) {
         const seat = this.seats.get(ch.seatId)!
         if (!seat.assigned) {
@@ -518,8 +518,8 @@ export class OfficeState {
 
     // Second pass: assign remaining characters to free seats
     for (const ch of this.characters.values()) {
-      if (ch.isCat || ch.isLobster || ch.isSystemRole) continue
-      if (ch.seatId) continue
+      if (ch.isCat || ch.isLobster || ch.isSystemRole) {continue}
+      if (ch.seatId) {continue}
       const seatId = this.findFreeSeat()
       if (seatId) {
         this.seats.get(seatId)!.assigned = true
@@ -535,8 +535,8 @@ export class OfficeState {
 
     // Relocate any characters that ended up outside bounds or on non-walkable tiles
     for (const ch of this.characters.values()) {
-      if (ch.isSystemRole) continue
-      if (ch.seatId) continue // seated characters are fine
+      if (ch.isSystemRole) {continue}
+      if (ch.seatId) {continue} // seated characters are fine
       if (ch.tileCol < 0 || ch.tileCol >= layout.cols || ch.tileRow < 0 || ch.tileRow >= layout.rows) {
         this.relocateCharacterToWalkable(ch)
       }
@@ -545,7 +545,7 @@ export class OfficeState {
 
   /** Move a character to a random walkable tile */
   private relocateCharacterToWalkable(ch: Character): void {
-    if (this.walkableTiles.length === 0) return
+    if (this.walkableTiles.length === 0) {return}
     const spawn = this.walkableTiles[Math.floor(Math.random() * this.walkableTiles.length)]
     ch.tileCol = spawn.col
     ch.tileRow = spawn.row
@@ -561,30 +561,30 @@ export class OfficeState {
 
   /** Get the blocked-tile key for a character's own seat, or null */
   private ownSeatKey(ch: Character): string | null {
-    if (!ch.seatId) return null
+    if (!ch.seatId) {return null}
     const seat = this.seats.get(ch.seatId)
-    if (!seat) return null
+    if (!seat) {return null}
     return `${Math.round(seat.seatCol)},${Math.round(seat.seatRow)}`
   }
 
   /** Temporarily unblock a character's own seat, run fn, then re-block */
   private withOwnSeatUnblocked<T>(ch: Character, fn: () => T): T {
     const key = this.ownSeatKey(ch)
-    if (key) this.blockedTiles.delete(key)
+    if (key) {this.blockedTiles.delete(key)}
     const result = fn()
-    if (key) this.blockedTiles.add(key)
+    if (key) {this.blockedTiles.add(key)}
     return result
   }
 
   private findFreeSeat(): string | null {
     for (const [uid, seat] of this.seats) {
-      if (!seat.assigned) return uid
+      if (!seat.assigned) {return uid}
     }
     return null
   }
 
   private getSubagentSpawnCandidates(): Array<{ col: number; row: number }> {
-    if (this.walkableTiles.length === 0) return [{ col: 1, row: 1 }]
+    if (this.walkableTiles.length === 0) {return [{ col: 1, row: 1 }]}
     const preferred = this.walkableTiles.filter((t) => t.row >= 11)
     const candidates = preferred.length > 0 ? preferred : this.walkableTiles
     const occupied = new Set<string>()
@@ -595,7 +595,7 @@ export class OfficeState {
     const source = free.length > 0 ? free : candidates
     return source
       .slice()
-      .sort((a, b) => {
+      .toSorted((a, b) => {
         const da = Math.abs(a.col - SUBAGENT_SPAWN_CENTER_COL) + Math.abs(a.row - SUBAGENT_SPAWN_CENTER_ROW)
         const db = Math.abs(b.col - SUBAGENT_SPAWN_CENTER_COL) + Math.abs(b.row - SUBAGENT_SPAWN_CENTER_ROW)
         return da - db
@@ -612,14 +612,14 @@ export class OfficeState {
     const paletteCount = getAvailableCharacterVariantCount()
     const counts = new Array(paletteCount).fill(0) as number[]
     for (const ch of this.characters.values()) {
-      if (ch.isSubagent) continue
+      if (ch.isSubagent) {continue}
       counts[ch.palette % paletteCount]++
     }
     const minCount = Math.min(...counts)
     // Available = variants at the minimum count (least used)
     const available: number[] = []
     for (let i = 0; i < paletteCount; i++) {
-      if (counts[i] === minCount) available.push(i)
+      if (counts[i] === minCount) {available.push(i)}
     }
     const extraVariants = available.filter((index) => index >= CHARACTER_PALETTES.length)
     const preferred = minCount === 0 && extraVariants.length > 0 ? extraVariants : available
@@ -633,7 +633,7 @@ export class OfficeState {
   }
 
   addAgent(id: number, preferredPalette?: number, preferredHueShift?: number, preferredSeatId?: string, skipSpawnEffect?: boolean, spawnAtDoor?: boolean): void {
-    if (this.characters.has(id)) return
+    if (this.characters.has(id)) {return}
 
     let palette: number
     let hueShift: number
@@ -714,7 +714,7 @@ export class OfficeState {
   /** Spawn the office cat at a random walkable tile */
   spawnCat(): void {
     const id = OfficeState.CAT_ID
-    if (this.characters.has(id)) return
+    if (this.characters.has(id)) {return}
     const spawn = this.walkableTiles.length > 0
       ? this.walkableTiles[Math.floor(Math.random() * this.walkableTiles.length)]
       : { col: 1, row: 1 }
@@ -732,7 +732,7 @@ export class OfficeState {
   /** Spawn the office lobster at a random walkable tile */
   spawnLobster(): void {
     const id = OfficeState.LOBSTER_ID
-    if (this.characters.has(id)) return
+    if (this.characters.has(id)) {return}
     const spawn = this.walkableTiles.length > 0
       ? this.walkableTiles[Math.floor(Math.random() * this.walkableTiles.length)]
       : { col: 1, row: 1 }
@@ -749,7 +749,7 @@ export class OfficeState {
 
   toggleFirstLobsterRage(): boolean {
     const lobster = this.characters.get(OfficeState.LOBSTER_ID)
-    if (!lobster || !lobster.isLobster) return false
+    if (!lobster || !lobster.isLobster) {return false}
     if (lobster.lobsterRageTimer > 0) {
       lobster.lobsterRageTimer = 0
       lobster.lobsterBubbles = []
@@ -761,20 +761,20 @@ export class OfficeState {
 
   getFirstLobsterAt(worldX: number, worldY: number): number | null {
     const lobster = this.characters.get(OfficeState.LOBSTER_ID)
-    if (!lobster || lobster.matrixEffect === 'despawn') return null
+    if (!lobster || lobster.matrixEffect === 'despawn') {return null}
     const cx = lobster.x
     const cy = lobster.y + 2
     const dx = worldX - cx
     const dy = worldY - cy
     const hitR = LOBSTER_HIT_RADIUS_PX
-    if (dx * dx + dy * dy <= hitR * hitR) return lobster.id
+    if (dx * dx + dy * dy <= hitR * hitR) {return lobster.id}
     return null
   }
 
   /** Spawn the hunter lobster at a random walkable tile */
   spawnHunterLobster(): void {
     const id = OfficeState.HUNTER_LOBSTER_ID
-    if (this.characters.has(id)) return
+    if (this.characters.has(id)) {return}
     const spawn = this.walkableTiles.length > 0
       ? this.walkableTiles[Math.floor(Math.random() * this.walkableTiles.length)]
       : { col: 1, row: 1 }
@@ -791,7 +791,7 @@ export class OfficeState {
 
   ensureGatewaySre(): void {
     const id = OfficeState.GATEWAY_SRE_ID
-    if (this.characters.has(id)) return
+    if (this.characters.has(id)) {return}
     const spawn = this.findClosestWalkable(GATEWAY_SRE_STANDBY_COL, GATEWAY_SRE_STANDBY_ROW)
     const ch = createCharacter(id, 2, null, null, 0)
     ch.isSystemRole = true
@@ -824,7 +824,7 @@ export class OfficeState {
     this.gatewaySreResponseMs = info.responseMs ?? null
     this.gatewaySreCheckedAt = info.checkedAt ?? null
     const ch = this.characters.get(OfficeState.GATEWAY_SRE_ID)
-    if (!ch) return
+    if (!ch) {return}
     ch.systemStatus = this.gatewaySreStatus
     if (prevStatus !== info.status) {
       // React immediately when gateway status changes.
@@ -838,7 +838,7 @@ export class OfficeState {
 
   getGatewaySreInfo(): GatewaySreInfo | null {
     const ch = this.characters.get(OfficeState.GATEWAY_SRE_ID)
-    if (!ch) return null
+    if (!ch) {return null}
     return {
       id: ch.id,
       status: this.gatewaySreStatus,
@@ -849,7 +849,7 @@ export class OfficeState {
   }
 
   private findClosestWalkable(targetCol: number, targetRow: number): { col: number; row: number } {
-    if (this.walkableTiles.length === 0) return { col: 1, row: 1 }
+    if (this.walkableTiles.length === 0) {return { col: 1, row: 1 }}
     let best = this.walkableTiles[0]
     let bestDist = Math.abs(best.col - targetCol) + Math.abs(best.row - targetRow)
     for (let i = 1; i < this.walkableTiles.length; i++) {
@@ -870,7 +870,7 @@ export class OfficeState {
       t.row <= 8 && t.col >= 1 && t.col <= 19
     )
     const lounge = loungeTiles.length > 0 ? loungeTiles : this.walkableTiles
-    if (officeTiles.length === 0) return lounge
+    if (officeTiles.length === 0) {return lounge}
     // Weighted sampling pool: ~86% lounge, ~14% office.
     return [...lounge, ...lounge, ...lounge, ...lounge, ...lounge, ...lounge, ...officeTiles]
   }
@@ -896,7 +896,7 @@ export class OfficeState {
 
   private forceWalkTo(ch: Character, col: number, row: number): void {
     const path = findPath(ch.tileCol, ch.tileRow, col, row, this.tileMap, this.blockedTiles)
-    if (path.length === 0) return
+    if (path.length === 0) {return}
     ch.path = path
     ch.moveProgress = 0
     ch.state = CharacterState.WALK
@@ -957,7 +957,7 @@ export class OfficeState {
   private getFirstIdleHumanoid(): Character | null {
     const list = Array.from(this.characters.values())
       .filter(ch => !ch.isCat && !ch.isLobster && !ch.isSystemRole && ch.state === CharacterState.IDLE && ch.matrixEffect !== 'despawn')
-      .sort((a, b) => a.id - b.id)
+      .toSorted((a, b) => a.id - b.id)
     return list[0] || null
   }
 
@@ -974,10 +974,10 @@ export class OfficeState {
   private spawnLobsterBubble(ch: Character): void {
     let tailX = 0
     let tailY = 0
-    if (ch.dir === Direction.RIGHT) tailX = -6
-    else if (ch.dir === Direction.LEFT) tailX = 6
-    else if (ch.dir === Direction.UP) tailY = 6
-    else tailY = -6
+    if (ch.dir === Direction.RIGHT) {tailX = -6}
+    else if (ch.dir === Direction.LEFT) {tailX = 6}
+    else if (ch.dir === Direction.UP) {tailY = 6}
+    else {tailY = -6}
     ch.lobsterBubbles.push({
       age: 0,
       x: tailX + (Math.random() - 0.5) * 2.5,
@@ -1066,15 +1066,15 @@ export class OfficeState {
 
   removeAgent(id: number): void {
     const ch = this.characters.get(id)
-    if (!ch) return
-    if (ch.matrixEffect === 'despawn') return // already despawning
+    if (!ch) {return}
+    if (ch.matrixEffect === 'despawn') {return} // already despawning
     // Free seat and clear selection immediately
     if (ch.seatId) {
       const seat = this.seats.get(ch.seatId)
-      if (seat) seat.assigned = false
+      if (seat) {seat.assigned = false}
     }
-    if (this.selectedAgentId === id) this.selectedAgentId = null
-    if (this.cameraFollowId === id) this.cameraFollowId = null
+    if (this.selectedAgentId === id) {this.selectedAgentId = null}
+    if (this.cameraFollowId === id) {this.cameraFollowId = null}
     // Start despawn animation instead of immediate delete
     ch.matrixEffect = 'despawn'
     ch.matrixEffectTimer = 0
@@ -1085,7 +1085,7 @@ export class OfficeState {
   /** Find seat uid at a given tile position, or null */
   getSeatAtTile(col: number, row: number): string | null {
     for (const [uid, seat] of this.seats) {
-      if (Math.round(seat.seatCol) === col && Math.round(seat.seatRow) === row) return uid
+      if (Math.round(seat.seatCol) === col && Math.round(seat.seatRow) === row) {return uid}
     }
     return null
   }
@@ -1093,15 +1093,15 @@ export class OfficeState {
   /** Reassign an agent from their current seat to a new seat */
   reassignSeat(agentId: number, seatId: string): void {
     const ch = this.characters.get(agentId)
-    if (!ch) return
+    if (!ch) {return}
     // Unassign old seat
     if (ch.seatId) {
       const old = this.seats.get(ch.seatId)
-      if (old) old.assigned = false
+      if (old) {old.assigned = false}
     }
     // Assign new seat
     const seat = this.seats.get(seatId)
-    if (!seat || seat.assigned) return
+    if (!seat || seat.assigned) {return}
     seat.assigned = true
     ch.seatId = seatId
     // Pathfind to new seat (unblock own seat tile for this query)
@@ -1129,9 +1129,9 @@ export class OfficeState {
   /** Send an agent back to their currently assigned seat */
   sendToSeat(agentId: number): void {
     const ch = this.characters.get(agentId)
-    if (!ch || !ch.seatId) return
+    if (!ch || !ch.seatId) {return}
     const seat = this.seats.get(ch.seatId)
-    if (!seat) return
+    if (!seat) {return}
     const path = this.withOwnSeatUnblocked(ch, () =>
       findPath(ch.tileCol, ch.tileRow, Math.round(seat.seatCol), Math.round(seat.seatRow), this.tileMap, this.blockedTiles)
     )
@@ -1156,16 +1156,16 @@ export class OfficeState {
   /** Walk an agent to an arbitrary walkable tile (right-click command) */
   walkToTile(agentId: number, col: number, row: number): boolean {
     const ch = this.characters.get(agentId)
-    if (!ch || ch.isSubagent) return false
+    if (!ch || ch.isSubagent) {return false}
     if (!isWalkable(col, row, this.tileMap, this.blockedTiles)) {
       // Also allow walking to own seat tile (blocked for others but not self)
       const key = this.ownSeatKey(ch)
-      if (!key || key !== `${col},${row}`) return false
+      if (!key || key !== `${col},${row}`) {return false}
     }
     const path = this.withOwnSeatUnblocked(ch, () =>
       findPath(ch.tileCol, ch.tileRow, col, row, this.tileMap, this.blockedTiles)
     )
-    if (path.length === 0) return false
+    if (path.length === 0) {return false}
     ch.path = path
     ch.moveProgress = 0
     ch.state = CharacterState.WALK
@@ -1177,7 +1177,7 @@ export class OfficeState {
   /** Create a sub-agent character with the parent's palette. Returns the sub-agent ID. */
   addSubagent(parentAgentId: number, parentToolId: string): number {
     const key = `${parentAgentId}:${parentToolId}`
-    if (this.subagentIdMap.has(key)) return this.subagentIdMap.get(key)!
+    if (this.subagentIdMap.has(key)) {return this.subagentIdMap.get(key)!}
 
     const id = this.nextSubagentId--
     const parentCh = this.characters.get(parentAgentId)
@@ -1284,7 +1284,7 @@ export class OfficeState {
   removeSubagent(parentAgentId: number, parentToolId: string): void {
     const key = `${parentAgentId}:${parentToolId}`
     const id = this.subagentIdMap.get(key)
-    if (id === undefined) return
+    if (id === undefined) {return}
 
     const ch = this.characters.get(id)
     if (ch) {
@@ -1296,7 +1296,7 @@ export class OfficeState {
       }
       if (ch.seatId) {
         const seat = this.seats.get(ch.seatId)
-        if (seat) seat.assigned = false
+        if (seat) {seat.assigned = false}
       }
       // Start despawn animation — keep character in map for rendering
       ch.matrixEffect = 'despawn'
@@ -1307,8 +1307,8 @@ export class OfficeState {
     // Clean up tracking maps immediately so keys don't collide
     this.subagentIdMap.delete(key)
     this.subagentMeta.delete(id)
-    if (this.selectedAgentId === id) this.selectedAgentId = null
-    if (this.cameraFollowId === id) this.cameraFollowId = null
+    if (this.selectedAgentId === id) {this.selectedAgentId = null}
+    if (this.cameraFollowId === id) {this.cameraFollowId = null}
   }
 
   /** Remove all sub-agents belonging to a parent agent */
@@ -1327,7 +1327,7 @@ export class OfficeState {
           }
           if (ch.seatId) {
             const seat = this.seats.get(ch.seatId)
-            if (seat) seat.assigned = false
+            if (seat) {seat.assigned = false}
           }
           // Start despawn animation
           ch.matrixEffect = 'despawn'
@@ -1336,8 +1336,8 @@ export class OfficeState {
           ch.bubbleType = null
         }
         this.subagentMeta.delete(id)
-        if (this.selectedAgentId === id) this.selectedAgentId = null
-        if (this.cameraFollowId === id) this.cameraFollowId = null
+        if (this.selectedAgentId === id) {this.selectedAgentId = null}
+        if (this.cameraFollowId === id) {this.cameraFollowId = null}
         toRemove.push(key)
       }
     }
@@ -1354,7 +1354,7 @@ export class OfficeState {
   setAgentActive(id: number, active: boolean): void {
     const ch = this.characters.get(id)
     if (ch) {
-      if (ch.isActive === active) return
+      if (ch.isActive === active) {return}
       ch.isActive = active
       if (!active) {
         // Sentinel -1: signals turn just ended, skip next seat rest timer.
@@ -1372,9 +1372,9 @@ export class OfficeState {
     // Collect tiles where active agents face desks
     const autoOnTiles = new Set<string>()
     for (const ch of this.characters.values()) {
-      if (!ch.isActive || !ch.seatId) continue
+      if (!ch.isActive || !ch.seatId) {continue}
       const seat = this.seats.get(ch.seatId)
-      if (!seat) continue
+      if (!seat) {continue}
       // Find the desk tile(s) the agent faces from their seat
       const dCol = seat.facingDir === Direction.RIGHT ? 1 : seat.facingDir === Direction.LEFT ? -1 : 0
       const dRow = seat.facingDir === Direction.DOWN ? 1 : seat.facingDir === Direction.UP ? -1 : 0
@@ -1408,7 +1408,7 @@ export class OfficeState {
     // Build modified furniture list with auto-state applied
     const modifiedFurniture: PlacedFurniture[] = this.layout.furniture.map((item) => {
       const entry = getCatalogEntry(item.type)
-      if (!entry) return item
+      if (!entry) {return item}
       // Check if any tile of this furniture overlaps an auto-on tile
       for (let dr = 0; dr < entry.footprintH; dr++) {
         for (let dc = 0; dc < entry.footprintW; dc++) {
@@ -1461,9 +1461,9 @@ export class OfficeState {
   /** Push an explicit snippet bubble (e.g. subagent session updates). */
   pushCodeSnippet(id: number, text: string): void {
     const ch = this.characters.get(id)
-    if (!ch || ch.isCat || ch.isLobster) return
+    if (!ch || ch.isCat || ch.isLobster) {return}
     const compact = text.replace(/\s+/g, ' ').trim()
-    if (!compact) return
+    if (!compact) {return}
     ch.codeSnippets.push({
       text: compact.length > 90 ? `${compact.slice(0, 89)}…` : compact,
       age: 0,
@@ -1478,7 +1478,7 @@ export class OfficeState {
   /** Dismiss bubble on click — permission: instant, waiting: quick fade */
   dismissBubble(id: number): void {
     const ch = this.characters.get(id)
-    if (!ch || !ch.bubbleType) return
+    if (!ch || !ch.bubbleType) {return}
     if (ch.bubbleType === 'permission') {
       ch.bubbleType = null
       ch.bubbleTimer = 0
@@ -1532,7 +1532,7 @@ export class OfficeState {
             this.spawnLobsterBubble(ch)
           }
         }
-        for (const b of ch.lobsterBubbles) b.age += dt
+        for (const b of ch.lobsterBubbles) {b.age += dt}
         ch.lobsterBubbles = ch.lobsterBubbles.filter(b => b.age < LOBSTER_BUBBLE_LIFETIME_SEC)
       }
 
@@ -1547,7 +1547,7 @@ export class OfficeState {
 
       // Photo comment particles for characters viewing the photograph
       if (ch.isViewingPhoto && ch.state === CharacterState.IDLE && !ch.isCat && !ch.isLobster) {
-        for (const pc of ch.photoComments) pc.age += dt
+        for (const pc of ch.photoComments) {pc.age += dt}
         ch.photoComments = ch.photoComments.filter(pc => pc.age < PHOTO_COMMENT_LIFETIME)
         if (ch.photoComments.length < 2 && Math.random() < dt * PHOTO_COMMENT_SPAWN_RATE) {
           ch.photoComments.push({
@@ -1579,7 +1579,7 @@ export class OfficeState {
       // - Gateway SRE in down state: ops slang ("运维黑话")
       // - Subagent/session-driven snippets can be injected externally via pushCodeSnippet().
       if (!ch.isCat && !ch.isLobster) {
-        for (const s of ch.codeSnippets) s.age += dt
+        for (const s of ch.codeSnippets) {s.age += dt}
         ch.codeSnippets = ch.codeSnippets.filter(s => s.age < CODE_SNIPPET_LIFETIME)
       }
 
@@ -1645,11 +1645,11 @@ export class OfficeState {
 
   /** Get character at pixel position (for hit testing). Returns id or null. */
   getCharacterAt(worldX: number, worldY: number): number | null {
-    const chars = this.getCharacters().sort((a, b) => b.y - a.y)
+    const chars = this.getCharacters().toSorted((a, b) => b.y - a.y)
     for (const ch of chars) {
       // Skip characters that are despawning or pets
-      if (ch.matrixEffect === 'despawn') continue
-      if (ch.isCat || ch.isLobster) continue
+      if (ch.matrixEffect === 'despawn') {continue}
+      if (ch.isCat || ch.isLobster) {continue}
       // Character sprite is 16x24, anchored bottom-center
       // Apply sitting offset to match visual position
       const sittingOffset = ch.state === CharacterState.TYPE ? CHARACTER_SITTING_OFFSET_PX : 0

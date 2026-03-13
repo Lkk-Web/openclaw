@@ -90,7 +90,7 @@ export function syncAgentsToOffice(
           const subId = office.addSubagent(charId, subKey)
           office.setAgentActive(subId, true)
           const subCh = office.characters.get(subId)
-          if (subCh) subCh.label = office.getTempWorkerLabel()
+          if (subCh) {subCh.label = office.getTempWorkerLabel()}
         } else {
           const subCh = office.characters.get(existingSubId)
           if (subCh) {

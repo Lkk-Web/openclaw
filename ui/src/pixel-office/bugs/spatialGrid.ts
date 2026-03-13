@@ -32,8 +32,8 @@ export class BugSpatialGrid {
     for (let cx = minCx; cx <= maxCx; cx++) {
       for (let cy = minCy; cy <= maxCy; cy++) {
         const bucket = this.cells.get(`${cx},${cy}`)
-        if (!bucket) continue
-        for (const bug of bucket) out.push(bug)
+        if (!bucket) {continue}
+        for (const bug of bucket) {out.push(bug)}
       }
     }
     return out

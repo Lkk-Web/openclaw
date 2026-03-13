@@ -35,20 +35,20 @@ export function getWallSprite(
   row: number,
   tileMap: TileTypeVal[][],
 ): { sprite: SpriteData; offsetY: number } | null {
-  if (!wallSprites) return null
+  if (!wallSprites) {return null}
 
   const tmRows = tileMap.length
   const tmCols = tmRows > 0 ? tileMap[0].length : 0
 
   // Build 4-bit neighbor bitmask
   let mask = 0
-  if (row > 0 && tileMap[row - 1][col] === TileType.WALL) mask |= 1            // N
-  if (col < tmCols - 1 && tileMap[row][col + 1] === TileType.WALL) mask |= 2   // E
-  if (row < tmRows - 1 && tileMap[row + 1][col] === TileType.WALL) mask |= 4   // S
-  if (col > 0 && tileMap[row][col - 1] === TileType.WALL) mask |= 8            // W
+  if (row > 0 && tileMap[row - 1][col] === TileType.WALL) {mask |= 1}            // N
+  if (col < tmCols - 1 && tileMap[row][col + 1] === TileType.WALL) {mask |= 2}   // E
+  if (row < tmRows - 1 && tileMap[row + 1][col] === TileType.WALL) {mask |= 4}   // S
+  if (col > 0 && tileMap[row][col - 1] === TileType.WALL) {mask |= 8}            // W
 
   const sprite = wallSprites[mask]
-  if (!sprite) return null
+  if (!sprite) {return null}
 
   // Anchor sprite at bottom of tile — tall sprites extend upward
   return { sprite, offsetY: TILE_SIZE - sprite.length }
@@ -65,20 +65,20 @@ export function getColorizedWallSprite(
   tileMap: TileTypeVal[][],
   color: FloorColor,
 ): { sprite: SpriteData; offsetY: number } | null {
-  if (!wallSprites) return null
+  if (!wallSprites) {return null}
 
   const tmRows = tileMap.length
   const tmCols = tmRows > 0 ? tileMap[0].length : 0
 
   // Build 4-bit neighbor bitmask (same as getWallSprite)
   let mask = 0
-  if (row > 0 && tileMap[row - 1][col] === TileType.WALL) mask |= 1            // N
-  if (col < tmCols - 1 && tileMap[row][col + 1] === TileType.WALL) mask |= 2   // E
-  if (row < tmRows - 1 && tileMap[row + 1][col] === TileType.WALL) mask |= 4   // S
-  if (col > 0 && tileMap[row][col - 1] === TileType.WALL) mask |= 8            // W
+  if (row > 0 && tileMap[row - 1][col] === TileType.WALL) {mask |= 1}            // N
+  if (col < tmCols - 1 && tileMap[row][col + 1] === TileType.WALL) {mask |= 2}   // E
+  if (row < tmRows - 1 && tileMap[row + 1][col] === TileType.WALL) {mask |= 4}   // S
+  if (col > 0 && tileMap[row][col - 1] === TileType.WALL) {mask |= 8}            // W
 
   const sprite = wallSprites[mask]
-  if (!sprite) return null
+  if (!sprite) {return null}
 
   const cacheKey = `wall-${mask}-${color.h}-${color.s}-${color.b}-${color.c}`
   const colorized = getColorizedSprite(cacheKey, sprite, { ...color, colorize: true })
@@ -95,20 +95,20 @@ export function getWallInstances(
   tileColors?: Array<FloorColor | null>,
   cols?: number,
 ): FurnitureInstance[] {
-  if (!wallSprites) return []
+  if (!wallSprites) {return []}
   const tmRows = tileMap.length
   const tmCols = tmRows > 0 ? tileMap[0].length : 0
   const layoutCols = cols ?? tmCols
   const instances: FurnitureInstance[] = []
   for (let r = 0; r < tmRows; r++) {
     for (let c = 0; c < tmCols; c++) {
-      if (tileMap[r][c] !== TileType.WALL) continue
+      if (tileMap[r][c] !== TileType.WALL) {continue}
       const colorIdx = r * layoutCols + c
       const wallColor = tileColors?.[colorIdx]
       const wallInfo = wallColor
         ? getColorizedWallSprite(c, r, tileMap, wallColor)
         : getWallSprite(c, r, tileMap)
-      if (!wallInfo) continue
+      if (!wallInfo) {continue}
       instances.push({
         sprite: wallInfo.sprite,
         x: c * TILE_SIZE,

@@ -50,16 +50,16 @@ function isSpawnTool(name: string): boolean {
 }
 
 function pickSubagentLabel(raw: unknown): string {
-  if (!raw || typeof raw !== "object") return "Subtask";
+  if (!raw || typeof raw !== "object") {return "Subtask";}
   const args = raw as Record<string, unknown>;
-  if (typeof args.label === "string" && args.label.trim()) return args.label.trim();
-  if (typeof args.task === "string" && args.task.trim()) return args.task.trim();
-  if (typeof args.description === "string" && args.description.trim()) return args.description.trim();
+  if (typeof args.label === "string" && args.label.trim()) {return args.label.trim();}
+  if (typeof args.task === "string" && args.task.trim()) {return args.task.trim();}
+  if (typeof args.description === "string" && args.description.trim()) {return args.description.trim();}
   return "Subtask";
 }
 
 function extractCompletedSubagentLabel(text: string): string | null {
-  if (!text) return null;
+  if (!text) {return null;}
   const patterns = [
     /A subagent task\s+"([^"]+)"\s+just completed/i,
     /subagent task\s+"([^"]+)"\s+.*completed/i,
@@ -67,55 +67,55 @@ function extractCompletedSubagentLabel(text: string): string | null {
   ];
   for (const p of patterns) {
     const m = text.match(p);
-    if (m?.[1]?.trim()) return m[1].trim();
+    if (m?.[1]?.trim()) {return m[1].trim();}
   }
   return null;
 }
 
 function parseRecordTimestamp(record: unknown): number {
-  if (!record || typeof record !== "object") return 0;
+  if (!record || typeof record !== "object") {return 0;}
   const rec = record as Record<string, unknown>;
   if (typeof rec.timestamp === "string") {
     const t = Date.parse(rec.timestamp);
-    if (Number.isFinite(t)) return t;
+    if (Number.isFinite(t)) {return t;}
   }
-  if (typeof rec.timestamp === "number" && Number.isFinite(rec.timestamp)) return rec.timestamp;
+  if (typeof rec.timestamp === "number" && Number.isFinite(rec.timestamp)) {return rec.timestamp;}
   const msg = rec.message;
   if (msg && typeof msg === "object") {
     const m = msg as Record<string, unknown>;
     if (typeof m.timestamp === "string") {
       const t = Date.parse(m.timestamp);
-      if (Number.isFinite(t)) return t;
+      if (Number.isFinite(t)) {return t;}
     }
-    if (typeof m.timestamp === "number" && Number.isFinite(m.timestamp)) return m.timestamp;
+    if (typeof m.timestamp === "number" && Number.isFinite(m.timestamp)) {return m.timestamp;}
   }
   return 0;
 }
 
 function normalizeActivityText(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
+  if (typeof raw !== "string") {return null;}
   const compact = raw.replace(/\s+/g, " ").trim();
-  if (!compact) return null;
+  if (!compact) {return null;}
   return compact.length > SUBAGENT_ACTIVITY_TEXT_MAX_LEN
     ? `${compact.slice(0, SUBAGENT_ACTIVITY_TEXT_MAX_LEN - 1)}…`
     : compact;
 }
 
 function extractChildSessionKeyFromPayload(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") return null;
+  if (!payload || typeof payload !== "object") {return null;}
   const data = payload as Record<string, unknown>;
   const direct = data.childSessionKey;
-  if (typeof direct === "string" && direct.includes(":subagent:")) return direct;
+  if (typeof direct === "string" && direct.includes(":subagent:")) {return direct;}
   const details = data.details;
   if (details && typeof details === "object") {
     const fromDetails = (details as Record<string, unknown>).childSessionKey;
-    if (typeof fromDetails === "string" && fromDetails.includes(":subagent:")) return fromDetails;
+    if (typeof fromDetails === "string" && fromDetails.includes(":subagent:")) {return fromDetails;}
   }
   return null;
 }
 
 function extractChildSessionKeyFromText(rawText: unknown): string | null {
-  if (typeof rawText !== "string" || !rawText.trim()) return null;
+  if (typeof rawText !== "string" || !rawText.trim()) {return null;}
   try {
     const parsed = JSON.parse(rawText);
     return extractChildSessionKeyFromPayload(parsed);
@@ -126,24 +126,24 @@ function extractChildSessionKeyFromText(rawText: unknown): string | null {
 }
 
 function extractChildSessionKeyFromToolResultMessage(message: unknown): string | null {
-  if (!message || typeof message !== "object") return null;
+  if (!message || typeof message !== "object") {return null;}
   const msg = message as Record<string, unknown>;
   const fromPayload = extractChildSessionKeyFromPayload(msg);
-  if (fromPayload) return fromPayload;
+  if (fromPayload) {return fromPayload;}
   const content = msg.content;
-  if (!Array.isArray(content)) return null;
+  if (!Array.isArray(content)) {return null;}
   for (const block of content) {
-    if (!block || typeof block !== "object") continue;
+    if (!block || typeof block !== "object") {continue;}
     const text = (block as Record<string, unknown>).text;
     const fromText = extractChildSessionKeyFromText(text);
-    if (fromText) return fromText;
+    if (fromText) {return fromText;}
   }
   return null;
 }
 
 function getSubagentSessionIdFromKey(sessionKey: string): string | null {
   const idx = sessionKey.indexOf(":subagent:");
-  if (idx < 0) return null;
+  if (idx < 0) {return null;}
   const sessionId = sessionKey.slice(idx + ":subagent:".length).trim();
   return sessionId || null;
 }
@@ -153,7 +153,7 @@ function resolveSubagentSessionId(
   sessionsIndex?: SessionsIndex,
 ): string | null {
   const fromIndex = sessionsIndex?.[childSessionKey]?.sessionId;
-  if (typeof fromIndex === "string" && fromIndex.trim()) return fromIndex.trim();
+  if (typeof fromIndex === "string" && fromIndex.trim()) {return fromIndex.trim();}
   return getSubagentSessionIdFromKey(childSessionKey);
 }
 
@@ -165,9 +165,9 @@ async function parseSubagentActivityEvents(
   sessionsIndex?: SessionsIndex,
 ): Promise<SubagentActivityEvent[]> {
   const sessionId = resolveSubagentSessionId(childSessionKey, sessionsIndex);
-  if (!sessionId) return [];
+  if (!sessionId) {return [];}
   const transcriptPath = path.join(agentSessionsDir, `${sessionId}.jsonl`);
-  if (!existsSync(transcriptPath)) return [];
+  if (!existsSync(transcriptPath)) {return [];}
 
   try {
     const content = await fs.readFile(transcriptPath, "utf8");
@@ -177,9 +177,9 @@ async function parseSubagentActivityEvents(
     for (let i = 0; i < lines.length; i++) {
       let record: unknown;
       try { record = JSON.parse(lines[i]); } catch { continue; }
-      if ((record as Record<string, unknown>)?.type !== "message") continue;
+      if ((record as Record<string, unknown>)?.type !== "message") {continue;}
       const msg = (record as Record<string, unknown>).message as Record<string, unknown>;
-      if (!msg) continue;
+      if (!msg) {continue;}
       const at = parseRecordTimestamp(record);
       const role = typeof msg.role === "string" ? msg.role : "";
       const blocks = Array.isArray(msg.content) ? msg.content : [];
@@ -187,14 +187,14 @@ async function parseSubagentActivityEvents(
       if (role === "assistant") {
         for (let bi = 0; bi < blocks.length; bi++) {
           const block = blocks[bi] as Record<string, unknown>;
-          if (!block) continue;
+          if (!block) {continue;}
           if ((block.type === "toolCall" || block.type === "tool_use") && typeof block.name === "string") {
             events.push({ key: `${i}:tool:${block.id || bi}`, text: `tool: ${block.name}`, at });
             continue;
           }
           if (block.type === "text") {
             const normalized = normalizeActivityText(block.text);
-            if (normalized) events.push({ key: `${i}:msg:${bi}`, text: normalized, at });
+            if (normalized) {events.push({ key: `${i}:msg:${bi}`, text: normalized, at });}
           }
         }
       } else if (role === "toolResult") {
@@ -207,7 +207,7 @@ async function parseSubagentActivityEvents(
       } else if (role === "user") {
         for (let bi = 0; bi < blocks.length; bi++) {
           const normalized = normalizeActivityText((blocks[bi] as Record<string, unknown>)?.text);
-          if (normalized) events.push({ key: `${i}:user:${bi}`, text: `task: ${normalized}`, at });
+          if (normalized) {events.push({ key: `${i}:user:${bi}`, text: `task: ${normalized}`, at });}
         }
       }
     }
@@ -217,7 +217,7 @@ async function parseSubagentActivityEvents(
     const recentTextAt = new Map<string, number>();
     for (const event of events) {
       const lastAt = recentTextAt.get(event.text);
-      if (typeof lastAt === "number" && Math.abs(event.at - lastAt) <= 1500) continue;
+      if (typeof lastAt === "number" && Math.abs(event.at - lastAt) <= 1500) {continue;}
       recentTextAt.set(event.text, event.at);
       deduped.push(event);
     }
@@ -252,7 +252,7 @@ async function parseSubagentsFromSessionFile(
           const msg = record.message as Record<string, unknown>;
           const blocks = Array.isArray(msg.content) ? msg.content : [];
           for (const block of blocks as Record<string, unknown>[]) {
-            if (block.type !== "tool_use" || typeof block.id !== "string" || !block.id) continue;
+            if (block.type !== "tool_use" || typeof block.id !== "string" || !block.id) {continue;}
             if (typeof block.name === "string" && isSpawnTool(block.name)) {
               activeSubtasks.set(block.id, { label: pickSubagentLabel(block.input), at: eventAt });
               spawnToolIds.add(block.id);
@@ -333,7 +333,7 @@ async function parseSubagentsFromSessionFile(
 
     const now = Date.now();
     for (const [toolId, state] of activeSubtasks.entries()) {
-      if (state.at > 0 && now - state.at > SUBAGENT_MAX_ACTIVE_MS) continue;
+      if (state.at > 0 && now - state.at > SUBAGENT_MAX_ACTIVE_MS) {continue;}
       let activityEvents: SubagentActivityEvent[] | undefined;
       if (state.childSessionKey) {
         activityEvents = await parseSubagentActivityEvents(agentSessionsDir, state.childSessionKey, sessionsIndex);
@@ -369,20 +369,20 @@ async function parseSubagents(agentSessionsDir: string, agentId: string): Promis
         const raw = await fs.readFile(sessionsIndexPath, "utf8");
         sessionsIndex = JSON.parse(raw) as SessionsIndex;
         for (const [sessionKey, meta] of Object.entries(sessionsIndex)) {
-          if (!meta || typeof meta.sessionId !== "string" || !meta.sessionId) continue;
+          if (!meta || typeof meta.sessionId !== "string" || !meta.sessionId) {continue;}
           if (sessionKey.includes(":subagent:")) {
             subagentSessionIds.add(meta.sessionId);
             continue;
           }
           const filePath = path.join(agentSessionsDir, `${meta.sessionId}.jsonl`);
-          if (!existsSync(filePath)) continue;
+          if (!existsSync(filePath)) {continue;}
           let updatedAt = typeof meta.updatedAt === "number" && meta.updatedAt > 0
             ? meta.updatedAt
             : 0;
           if (updatedAt === 0) {
             try { updatedAt = (await fs.stat(filePath)).mtimeMs; } catch { updatedAt = 0; }
           }
-          if (updatedAt > 0 && updatedAt < cutoff) continue;
+          if (updatedAt > 0 && updatedAt < cutoff) {continue;}
           sessionFiles.push({ sessionKey, filePath, updatedAt });
           knownFilePaths.add(filePath);
         }
@@ -394,13 +394,13 @@ async function parseSubagents(agentSessionsDir: string, agentId: string): Promis
       const orphanCutoff = Date.now() - ORPHAN_FALLBACK_WINDOW_MS;
       const files = await fs.readdir(agentSessionsDir);
       for (const file of files) {
-        if (!file.endsWith(".jsonl") || file.startsWith("probe-")) continue;
+        if (!file.endsWith(".jsonl") || file.startsWith("probe-")) {continue;}
         const filePath = path.join(agentSessionsDir, file);
-        if (knownFilePaths.has(filePath)) continue;
+        if (knownFilePaths.has(filePath)) {continue;}
         const sessionId = file.slice(0, -".jsonl".length);
-        if (subagentSessionIds.has(sessionId)) continue;
+        if (subagentSessionIds.has(sessionId)) {continue;}
         const stat = await fs.stat(filePath);
-        if (stat.mtimeMs < orphanCutoff || stat.mtimeMs < cutoff) continue;
+        if (stat.mtimeMs < orphanCutoff || stat.mtimeMs < cutoff) {continue;}
         sessionFiles.push({
           sessionKey: `agent:${agentId}:orphan:${sessionId}`,
           filePath,
@@ -419,7 +419,7 @@ async function parseSubagents(agentSessionsDir: string, agentId: string): Promis
     for (const list of nested) {
       for (const sub of list) {
         const key = `${sub.sessionKey || ""}::${sub.toolId}`;
-        if (dedupe.has(key)) continue;
+        if (dedupe.has(key)) {continue;}
         dedupe.add(key);
         allSubagents.push(sub);
       }
@@ -436,10 +436,10 @@ async function getAgentLastActive(agentId: string): Promise<number> {
     const files = await fs.readdir(sessionsDir);
     let lastActive = 0;
     for (const file of files) {
-      if (!file.endsWith(".jsonl")) continue;
+      if (!file.endsWith(".jsonl")) {continue;}
       const filePath = path.join(sessionsDir, file);
       const stat = await fs.stat(filePath);
-      if (stat.mtimeMs > lastActive) lastActive = stat.mtimeMs;
+      if (stat.mtimeMs > lastActive) {lastActive = stat.mtimeMs;}
     }
     return lastActive;
   } catch {
@@ -448,10 +448,10 @@ async function getAgentLastActive(agentId: string): Promise<number> {
 }
 
 function resolveAgentState(lastActive: number, now: number): "idle" | "working" | "waiting" | "offline" {
-  if (lastActive === 0) return "offline";
+  if (lastActive === 0) {return "offline";}
   const timeDiff = now - lastActive;
-  if (timeDiff > 10 * 60 * 1000) return "offline";
-  if (timeDiff <= 2 * 60 * 1000) return "working";
+  if (timeDiff > 10 * 60 * 1000) {return "offline";}
+  if (timeDiff <= 2 * 60 * 1000) {return "working";}
   return "idle";
 }
 
@@ -462,7 +462,7 @@ export async function handleAgentActivityHttpRequest(
   res: ServerResponse,
 ): Promise<boolean> {
   const url = new URL(req.url ?? "/", "http://localhost");
-  if (url.pathname !== "/api/agent-activity") return false;
+  if (url.pathname !== "/api/agent-activity") {return false;}
 
   if (req.method !== "GET") {
     sendMethodNotAllowed(res, "GET");
@@ -485,7 +485,7 @@ export async function handleAgentActivityHttpRequest(
           const sessionsDir = resolveSessionTranscriptsDirForAgent(agentId);
           if (existsSync(sessionsDir)) {
             const list = await parseSubagents(sessionsDir, agentId);
-            if (list.length > 0) subagents = list;
+            if (list.length > 0) {subagents = list;}
           }
         }
 

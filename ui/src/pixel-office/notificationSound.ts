@@ -18,7 +18,7 @@ let bgmTracksLoaded = false
 const BGM_VOLUME = 0.28
 
 async function loadTracks(): Promise<void> {
-  if (bgmTracksLoaded) return
+  if (bgmTracksLoaded) {return}
   bgmTracksLoaded = true
   try {
     const res = await fetch('/api/pixel-office/tracks')
@@ -32,8 +32,8 @@ async function loadTracks(): Promise<void> {
 }
 
 function pickNextTrack(): string {
-  if (bgmTracks.length === 0) return '/assets/pixel-office/pixel-adventure.mp3'
-  if (bgmTracks.length === 1) return bgmTracks[0]
+  if (bgmTracks.length === 0) {return '/assets/pixel-office/pixel-adventure.mp3'}
+  if (bgmTracks.length === 1) {return bgmTracks[0]}
   let idx: number
   do { idx = Math.floor(Math.random() * bgmTracks.length) } while (idx === bgmLastIndex)
   bgmLastIndex = idx
@@ -42,7 +42,7 @@ function pickNextTrack(): string {
 
 export function setSoundEnabled(enabled: boolean): void {
   soundEnabled = enabled
-  if (!enabled) stopBackgroundMusic()
+  if (!enabled) {stopBackgroundMusic()}
 }
 
 export function isSoundEnabled(): boolean {
@@ -68,14 +68,14 @@ function playNote(ctx: AudioContext, freq: number, startOffset: number): void {
 }
 
 function getBgmAudio(): HTMLAudioElement | null {
-  if (typeof window === 'undefined') return null
+  if (typeof window === 'undefined') {return null}
   if (!bgmAudio) {
     bgmAudio = new Audio(pickNextTrack())
     bgmAudio.loop = false
     bgmAudio.preload = 'auto'
     bgmAudio.volume = BGM_VOLUME
     bgmAudio.addEventListener('ended', () => {
-      if (!soundEnabled || !bgmAudio) return
+      if (!soundEnabled || !bgmAudio) {return}
       bgmAudio.src = pickNextTrack()
       bgmAudio.load()
       bgmAudio.play().catch(() => {})
@@ -85,11 +85,11 @@ function getBgmAudio(): HTMLAudioElement | null {
 }
 
 function bindBgmGestureRetry(): void {
-  if (typeof window === 'undefined' || bgmGestureRetryBound) return
+  if (typeof window === 'undefined' || bgmGestureRetryBound) {return}
   bgmGestureRetryBound = true
 
   const cleanup = () => {
-    if (typeof window === 'undefined' || !bgmGestureRetryBound) return
+    if (typeof window === 'undefined' || !bgmGestureRetryBound) {return}
     bgmGestureRetryBound = false
     window.removeEventListener('pointerdown', resumeOnGesture)
     window.removeEventListener('touchstart', resumeOnGesture)
@@ -109,10 +109,10 @@ function bindBgmGestureRetry(): void {
 }
 
 export async function playDoneSound(): Promise<void> {
-  if (!soundEnabled) return
+  if (!soundEnabled) {return}
   try {
-    if (!audioCtx) audioCtx = new AudioContext()
-    if (audioCtx.state === 'suspended') await audioCtx.resume()
+    if (!audioCtx) {audioCtx = new AudioContext()}
+    if (audioCtx.state === 'suspended') {await audioCtx.resume()}
     playNote(audioCtx, NOTIFICATION_NOTE_1_HZ, NOTIFICATION_NOTE_1_START_SEC)
     playNote(audioCtx, NOTIFICATION_NOTE_2_HZ, NOTIFICATION_NOTE_2_START_SEC)
   } catch {
@@ -122,19 +122,19 @@ export async function playDoneSound(): Promise<void> {
 
 export function unlockAudio(): void {
   try {
-    if (!audioCtx) audioCtx = new AudioContext()
-    if (audioCtx.state === 'suspended') audioCtx.resume()
+    if (!audioCtx) {audioCtx = new AudioContext()}
+    if (audioCtx.state === 'suspended') {audioCtx.resume()}
   } catch {
     // ignore
   }
 }
 
 export async function playBackgroundMusic(): Promise<void> {
-  if (!soundEnabled) return
+  if (!soundEnabled) {return}
   await loadTracks()
   try {
     const audio = getBgmAudio()
-    if (!audio) return
+    if (!audio) {return}
     // If tracks loaded after audio element was created, update src to a proper random track
     if (bgmTracks.length > 0 && audio.src.includes('pixel-adventure') && bgmTracks.length > 1) {
       audio.src = pickNextTrack()
@@ -150,14 +150,14 @@ export async function playBackgroundMusic(): Promise<void> {
 }
 
 export function skipToNextTrack(): void {
-  if (!bgmAudio) return
+  if (!bgmAudio) {return}
   bgmAudio.src = pickNextTrack()
   bgmAudio.load()
-  if (soundEnabled) bgmAudio.play().catch(() => {})
+  if (soundEnabled) {bgmAudio.play().catch(() => {})}
 }
 
 export function stopBackgroundMusic(): void {
-  if (!bgmAudio) return
+  if (!bgmAudio) {return}
   bgmAudio.pause()
   bgmAudio.currentTime = 0
 }

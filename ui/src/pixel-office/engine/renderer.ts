@@ -55,10 +55,10 @@ export interface ContributionData { weeks: ContributionWeek[]; username: string 
 const HEATMAP_COLORS = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39']
 
 function contributionLevel(count: number): number {
-  if (count === 0) return 0
-  if (count <= 3) return 1
-  if (count <= 6) return 2
-  if (count <= 9) return 3
+  if (count === 0) {return 0}
+  if (count <= 3) {return 1}
+  if (count <= 6) {return 2}
+  if (count <= 9) {return 3}
   return 4
 }
 
@@ -67,7 +67,7 @@ function renderContributionHeatmap(
   data: ContributionData,
   offsetX: number, offsetY: number, zoom: number,
 ): void {
-  if (!data.weeks.length) return
+  if (!data.weeks.length) {return}
   const tileW = TILE_SIZE * zoom
   // Draw 52×7 heatmap grid across left room top wall (row 0, cols 1-9)
   const areaX = offsetX + 1 * tileW
@@ -153,7 +153,7 @@ export function renderTileGrid(
   for (let r = 0; r < tmRows; r++) {
     for (let c = 0; c < tmCols; c++) {
       const tile = tileMap[r][c]
-      if (tile === TileType.VOID) continue
+      if (tile === TileType.VOID) {continue}
 
       if (tile === TileType.WALL) {
         const colorIdx = r * layoutCols + c
@@ -239,9 +239,9 @@ export function renderScene(
   const laptopTiltSkewX = -Math.sin(laptopXTiltRad) * 0.35
   const visibleSubagentStoolIds = new Set<string>()
   for (const ch of characters) {
-    if (!ch.isSubagent || ch.state !== CharacterState.TYPE || !ch.seatId) continue
-    if (!ch.seatId.startsWith('stool-r')) continue
-    if (ch.matrixEffect === 'despawn') continue
+    if (!ch.isSubagent || ch.state !== CharacterState.TYPE || !ch.seatId) {continue}
+    if (!ch.seatId.startsWith('stool-r')) {continue}
+    if (ch.matrixEffect === 'despawn') {continue}
     visibleSubagentStoolIds.add(ch.seatId)
   }
 
@@ -280,10 +280,10 @@ export function renderScene(
             c.save()
             c.translate(emojiX, emojiY)
             c.rotate((f.rotation * Math.PI) / 180)
-            c.fillText(f.emoji!, 0, 0)
+            c.fillText(f.emoji, 0, 0)
             c.restore()
           } else {
-            c.fillText(f.emoji!, emojiX, emojiY)
+            c.fillText(f.emoji, emojiX, emojiY)
           }
 
           // Camera flash effect: brief white burst every 10 seconds
@@ -373,10 +373,10 @@ export function renderScene(
     if (ch.isSubagent && ch.state === CharacterState.TYPE && ch.seatId) {
       let dx = 0
       let dy = 0
-      if (ch.dir === Direction.LEFT) dx = -1
-      else if (ch.dir === Direction.RIGHT) dx = 1
-      else if (ch.dir === Direction.UP) dy = -1
-      else dy = 1
+      if (ch.dir === Direction.LEFT) {dx = -1}
+      else if (ch.dir === Direction.RIGHT) {dx = 1}
+      else if (ch.dir === Direction.UP) {dy = -1}
+      else {dy = 1}
 
       const forwardOffsetPx = TILE_SIZE * 0.62
       const sittingOffset = ch.state === CharacterState.TYPE ? CHARACTER_SITTING_OFFSET_PX : 0
@@ -602,13 +602,13 @@ export function renderSeatIndicators(
   offsetY: number,
   zoom: number,
 ): void {
-  if (selectedAgentId === null || !hoveredTile) return
+  if (selectedAgentId === null || !hoveredTile) {return}
   const selectedChar = characters.get(selectedAgentId)
-  if (!selectedChar) return
+  if (!selectedChar) {return}
 
   // Only show indicator for the hovered seat tile
   for (const [uid, seat] of seats) {
-    if (seat.seatCol !== hoveredTile.col || seat.seatRow !== hoveredTile.row) continue
+    if (seat.seatCol !== hoveredTile.col || seat.seatRow !== hoveredTile.row) {continue}
 
     const s = TILE_SIZE * zoom
     const x = offsetX + seat.seatCol * s
@@ -859,7 +859,7 @@ export function renderBubbles(
   zoom: number,
 ): void {
   for (const ch of characters) {
-    if (!ch.bubbleType) continue
+    if (!ch.bubbleType) {continue}
 
     const sprite = ch.bubbleType === 'permission'
       ? BUBBLE_PERMISSION_SPRITE
@@ -880,7 +880,7 @@ export function renderBubbles(
     const bubbleY = Math.round(offsetY + (ch.y + sittingOff - BUBBLE_VERTICAL_OFFSET_PX) * zoom - cached.height - 1 * zoom)
 
     ctx.save()
-    if (alpha < 1.0) ctx.globalAlpha = alpha
+    if (alpha < 1.0) {ctx.globalAlpha = alpha}
     ctx.drawImage(cached, bubbleX, bubbleY)
     ctx.restore()
   }
@@ -896,7 +896,7 @@ export function renderPhotoComments(
   const lifetime = 4.0
   const canvasH = ctx.canvas.height / (window.devicePixelRatio || 1)
   for (const ch of characters) {
-    if (ch.photoComments.length === 0) continue
+    if (ch.photoComments.length === 0) {continue}
     const sittingOff = ch.state === CharacterState.TYPE ? BUBBLE_SITTING_OFFSET_PX : 0
     const anchorX = Math.round(offsetX + ch.x * zoom)
     const anchorY = Math.round(offsetY + (ch.y + sittingOff - BUBBLE_VERTICAL_OFFSET_PX) * zoom)
@@ -911,8 +911,8 @@ export function renderPhotoComments(
     for (const pc of ch.photoComments) {
       const progress = pc.age / lifetime
       let alpha = 1.0
-      if (pc.age < 0.3) alpha = pc.age / 0.3
-      if (progress > 0.6) alpha = (1 - progress) / 0.4
+      if (pc.age < 0.3) {alpha = pc.age / 0.3}
+      if (progress > 0.6) {alpha = (1 - progress) / 0.4}
       const floatY = progress * totalFloatDist
       const baseX = anchorX + pc.x * zoom
       const baseY = anchorY - floatY

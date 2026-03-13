@@ -7,7 +7,7 @@ const outlineCache = new WeakMap<SpriteData, SpriteData>()
 /** Generate a 1px white outline SpriteData (2px larger in each dimension) */
 export function getOutlineSprite(sprite: SpriteData): SpriteData {
   const cached = outlineCache.get(sprite)
-  if (cached) return cached
+  if (cached) {return cached}
 
   const rows = sprite.length
   const cols = sprite[0].length
@@ -18,13 +18,13 @@ export function getOutlineSprite(sprite: SpriteData): SpriteData {
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (sprite[r][c] === '') continue
+      if (sprite[r][c] === '') {continue}
       const er = r + 1
       const ec = c + 1
-      if (outline[er - 1][ec] === '') outline[er - 1][ec] = '#FFFFFF'
-      if (outline[er + 1][ec] === '') outline[er + 1][ec] = '#FFFFFF'
-      if (outline[er][ec - 1] === '') outline[er][ec - 1] = '#FFFFFF'
-      if (outline[er][ec + 1] === '') outline[er][ec + 1] = '#FFFFFF'
+      if (outline[er - 1][ec] === '') {outline[er - 1][ec] = '#FFFFFF'}
+      if (outline[er + 1][ec] === '') {outline[er + 1][ec] = '#FFFFFF'}
+      if (outline[er][ec - 1] === '') {outline[er][ec - 1] = '#FFFFFF'}
+      if (outline[er][ec + 1] === '') {outline[er][ec + 1] = '#FFFFFF'}
     }
   }
 
@@ -48,7 +48,7 @@ export function getCachedSprite(sprite: SpriteData, zoom: number): HTMLCanvasEle
   }
 
   const cached = cache.get(sprite)
-  if (cached) return cached
+  if (cached) {return cached}
 
   const rows = sprite.length
   const cols = sprite[0].length
@@ -61,7 +61,7 @@ export function getCachedSprite(sprite: SpriteData, zoom: number): HTMLCanvasEle
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const color = sprite[r][c]
-      if (color === '') continue
+      if (color === '') {continue}
       ctx.fillStyle = color
       ctx.fillRect(c * zoom, r * zoom, zoom, zoom)
     }
