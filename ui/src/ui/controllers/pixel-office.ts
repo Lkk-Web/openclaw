@@ -108,7 +108,13 @@ export async function initPixelOffice(canvas: HTMLCanvasElement) {
   
   console.log("[PixelOffice] Canvas context obtained");
   
-  // Load sprites first
+  // Start agent polling immediately (parallel with asset loading)
+  await pollAgents();
+  controller.pollInterval = setInterval(() => {
+    void pollAgents();
+  }, AGENT_POLL_INTERVAL_MS);
+  
+  // Load sprites in parallel
   if (!controller.assetsLoaded) {
     console.log("[PixelOffice] Loading assets...");
     try {
@@ -136,12 +142,6 @@ export async function initPixelOffice(canvas: HTMLCanvasElement) {
   
   // Start render loop
   startRenderLoop();
-  
-  // Start agent polling
-  await pollAgents();
-  controller.pollInterval = setInterval(() => {
-    void pollAgents();
-  }, AGENT_POLL_INTERVAL_MS);
   
   console.log("[PixelOffice] Init complete");
 }
