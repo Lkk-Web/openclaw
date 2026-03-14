@@ -39,6 +39,9 @@ interface TaskPanelData {
 
 let currentData: TaskPanelData | null = null;
 let filter: "all" | "running" | "completed" | "failed" = "running";
+let searchQuery = "";
+let currentPage = 1;
+const PAGE_SIZE = 10;
 let refreshInterval: number | null = null;
 let eventSource: EventSource | null = null;
 
@@ -115,7 +118,7 @@ async function fetchTasks(): Promise<TaskPanelData> {
 function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
-  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+  if (minutes > 0) {return `${minutes}m ${seconds % 60}s`;}
   return `${seconds}s`;
 }
 
@@ -141,7 +144,7 @@ function getStatusLabel(status: string): string {
 
 function truncateTaskName(name: string): string {
   const lines = name.split('\n');
-  if (lines.length <= 3) return name;
+  if (lines.length <= 3) {return name;}
   return lines.slice(0, 3).join('\n') + '\n...';
 }
 
@@ -207,7 +210,11 @@ function renderTask(task: TaskInfo) {
 
 export function renderTaskPanel() {
   const tasks = currentData?.tasks || [];
-  const filteredTasks = filter === "all" ? tasks : tasks.filter(t => t.status === filter);
+  const filteredTasks = tasks
+    .filter(t => filter === "all" || t.status === filter)
+    .filter(t => !searchQuery || t.taskName.toLowerCase().includes(searchQuery.toLowerCase()));
+  const totalPages = Math.ceil(filteredTasks.length / PAGE_SIZE);
+  const paginatedTasks = filteredTasks.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const stats = currentData?.stats || { total: 0, running: 0, completed: 0, pending: 0, failed: 0 };
 
   return html`
@@ -264,19 +271,48 @@ export function renderTaskPanel() {
           </div>
           <div class="muted">显示 ${filteredTasks.length} / ${stats.total} 个任务</div>
         </div>
-        <div class="filters" style="margin-top: 12px;">
+        <div class="filters" style="margin-top: 12px; display: flex; gap: 12px; align-items: flex-end;">
           <label class="field">
             <span>状态筛选</span>
-            <select .value=${filter} @change=${(e: Event) => { filter = (e.target as HTMLSelectElement).value as typeof filter; }}>
+            <select .value=${filter} @change=${(e: Event) => { filter = (e.target as HTMLSelectElement).value as typeof filter; currentPage = 1; }}>
               <option value="all">全部 (${stats.total})</option>
               <option value="running">运行中 (${stats.running})</option>
               <option value="completed">已完成 (${stats.completed})</option>
               <option value="failed">失败 (${stats.failed})</option>
             </select>
           </label>
+          <label class="field" style="flex: 1;">
+            <span>搜索任务</span>
+            <input 
+              type="text" 
+              placeholder="搜索任务名称..." 
+              .value=${searchQuery}
+              @input=${(e: Event) => {
+                searchQuery = (e.target as HTMLInputElement).value;
+                currentPage = 1;
+              }}
+            />
+          </label>
         </div>
         ${filteredTasks.length > 0 
-          ? html`<div class="list" style="margin-top: 12px;">${filteredTasks.map(renderTask)}</div>`
+          ? html`
+            <div class="list" style="margin-top: 12px;">${paginatedTasks.map(renderTask)}</div>
+            ${totalPages > 1 ? html`
+              <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 12px;">
+                <button 
+                  class="btn" 
+                  ?disabled=${currentPage === 1}
+                  @click=${() => { currentPage--; }}
+                >上一页</button>
+                <span class="muted">第 ${currentPage} / ${totalPages} 页</span>
+                <button 
+                  class="btn" 
+                  ?disabled=${currentPage === totalPages}
+                  @click=${() => { currentPage++; }}
+                >下一页</button>
+              </div>
+            ` : nothing}
+          `
           : html`<div class="muted" style="margin-top: 12px;">暂无任务</div>`
         }
       </section>

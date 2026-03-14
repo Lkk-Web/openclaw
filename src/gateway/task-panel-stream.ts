@@ -5,7 +5,7 @@ const clients = new Set<ServerResponse>();
 
 export function handleTaskPanelStream(req: IncomingMessage, res: ServerResponse): boolean {
   const url = new URL(req.url ?? "/", "http://localhost");
-  if (url.pathname !== "/api/task-panel/stream") return false;
+  if (url.pathname !== "/api/task-panel/stream") {return false;}
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -23,7 +23,7 @@ export function handleTaskPanelStream(req: IncomingMessage, res: ServerResponse)
 }
 
 export async function broadcastTaskUpdate() {
-  if (clients.size === 0) return;
+  if (clients.size === 0) {return;}
 
   try {
     const agents = await getAgentActivities();
