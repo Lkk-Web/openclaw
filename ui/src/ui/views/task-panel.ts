@@ -1,4 +1,4 @@
-import { html, nothing } from "lit";
+import { html, nothing, render } from "lit";
 import { ref } from "lit/directives/ref.js";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { toSanitizedMarkdownHtml } from "../markdown.js";
@@ -44,9 +44,16 @@ let currentPage = 1;
 const PAGE_SIZE = 10;
 let refreshInterval: number | null = null;
 let eventSource: EventSource | null = null;
+let containerElement: HTMLElement | null = null;
 
 const STORAGE_KEY = "openclaw-completed-tasks";
 const THREE_DAYS_MS = 259200000;
+
+function triggerRerender() {
+  if (containerElement) {
+    render(renderTaskPanel(), containerElement.parentElement!);
+  }
+}
 
 function getCompletedTasks(): CompletedTask[] {
   try {
@@ -212,7 +219,7 @@ export function renderTaskPanel() {
   const tasks = currentData?.tasks || [];
   const filteredTasks = tasks
     .filter(t => filter === "all" || t.status === filter)
-    .filter(t => !searchQuery || t.taskName.toLowerCase().includes(searchQuery.toLowerCase()));
+    .filter(t => !searchQuery || (typeof t.taskName === 'string' && t.taskName.toLowerCase().includes(searchQuery.toLowerCase())));
   const totalPages = Math.ceil(filteredTasks.length / PAGE_SIZE);
   const paginatedTasks = filteredTasks.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const stats = currentData?.stats || { total: 0, running: 0, completed: 0, pending: 0, failed: 0 };
@@ -220,15 +227,16 @@ export function renderTaskPanel() {
   return html`
     <div class="task-panel-view" ${ref(async (el) => {
       if (el instanceof HTMLElement) {
+        containerElement = el;
         // Initial fetch
         currentData = await fetchTasks();
-        el.querySelector(".task-list")?.requestUpdate?.();
+        triggerRerender();
         
         // Start polling
         if (!refreshInterval) {
           refreshInterval = window.setInterval(async () => {
             currentData = await fetchTasks();
-            el.querySelector(".task-list")?.requestUpdate?.();
+            triggerRerender();
           }, 3000);
         }
       }
@@ -259,7 +267,10 @@ export function renderTaskPanel() {
           </div>
         </div>
         <div class="task-summary-strip__actions">
-          <button class="btn" @click=${async () => { currentData = await fetchTasks(); }}>刷新</button>
+          <button class="btn" @click=${async () => { 
+            currentData = await fetchTasks(); 
+            triggerRerender();
+          }}>刷新</button>
         </div>
       </section>
 
@@ -274,7 +285,11 @@ export function renderTaskPanel() {
         <div class="filters" style="margin-top: 12px; display: flex; gap: 12px; align-items: flex-end;">
           <label class="field">
             <span>状态筛选</span>
-            <select .value=${filter} @change=${(e: Event) => { filter = (e.target as HTMLSelectElement).value as typeof filter; currentPage = 1; }}>
+            <select .value=${filter} @change=${(e: Event) => { 
+              filter = (e.target as HTMLSelectElement).value as typeof filter; 
+              currentPage = 1;
+              triggerRerender();
+            }}>
               <option value="all">全部 (${stats.total})</option>
               <option value="running">运行中 (${stats.running})</option>
               <option value="completed">已完成 (${stats.completed})</option>
@@ -290,6 +305,7 @@ export function renderTaskPanel() {
               @input=${(e: Event) => {
                 searchQuery = (e.target as HTMLInputElement).value;
                 currentPage = 1;
+                triggerRerender();
               }}
             />
           </label>
@@ -302,13 +318,19 @@ export function renderTaskPanel() {
                 <button 
                   class="btn" 
                   ?disabled=${currentPage === 1}
-                  @click=${() => { currentPage--; }}
+                  @click=${() => { 
+                    currentPage--; 
+                    triggerRerender();
+                  }}
                 >上一页</button>
                 <span class="muted">第 ${currentPage} / ${totalPages} 页</span>
                 <button 
                   class="btn" 
                   ?disabled=${currentPage === totalPages}
-                  @click=${() => { currentPage++; }}
+                  @click=${() => { 
+                    currentPage++; 
+                    triggerRerender();
+                  }}
                 >下一页</button>
               </div>
             ` : nothing}
