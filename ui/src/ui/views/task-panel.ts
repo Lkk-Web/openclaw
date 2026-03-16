@@ -49,7 +49,7 @@ interface StoredTask { id: string; at: number; }
 function getStoredIds(): Set<string> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return new Set();
+    if (!raw) {return new Set();}
     const arr: StoredTask[] = JSON.parse(raw);
     return new Set(arr.map(t => t.id));
   } catch { return new Set(); }
@@ -66,7 +66,7 @@ function saveTaskId(taskId: string) {
       arr.push({ id: taskId, at: now });
     }
     // 只保留最近 MAX_STORED 个
-    if (arr.length > MAX_STORED) arr = arr.slice(-MAX_STORED);
+    if (arr.length > MAX_STORED) {arr = arr.slice(-MAX_STORED);}
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
     } catch {
@@ -97,7 +97,7 @@ async function fetchTasks(): Promise<TaskPanelData> {
 function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
-  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+  if (minutes > 0) {return `${minutes}m ${seconds % 60}s`;}
   return `${seconds}s`;
 }
 
@@ -124,16 +124,18 @@ function getStatusLabel(status: string): string {
 function parseSteps(text: string): string {
   return text.replace(/^(\s*)([-*]|\d+\.)\s+(.+)$/gm, (_match, indent, marker, content) => {
     const trimmed = content.trim();
-    if (/^[✅⏳⭕]/.test(trimmed)) return `${indent}${marker} ${trimmed}`;
+    if (/^[✅⏳⭕]/.test(trimmed)) {return `${indent}${marker} ${trimmed}`;}
     let icon = "⭕";
-    if (/已完成|完成|✅/.test(trimmed)) icon = "✅";
-    else if (/进行中|正在/.test(trimmed)) icon = "⏳";
+    if (/已完成|完成|✅/.test(trimmed)) {icon = "✅";}
+    else if (/进行中|正在/.test(trimmed)) {icon = "⏳";}
     return `${indent}${marker} ${icon} ${trimmed}`;
   });
 }
 
 function renderTask(task: TaskInfo) {
-  const filteredEvents = task.events.slice(-2);
+  const allEvents = task.events;
+  const EVENTS_PREVIEW = 3;
+  const hasMoreEvents = allEvents.length > EVENTS_PREVIEW;
   // 渲染完整内容，不切割 markdown（切割会导致列表/代码块等结构损坏）
   const parsedTaskName = parseSteps(task.taskName);
   const fullHtml = toSanitizedMarkdownHtml(parsedTaskName);
@@ -154,10 +156,21 @@ function renderTask(task: TaskInfo) {
         ` : html`
           <div class="list-sub">${unsafeHTML(fullHtml)}</div>
         `}
-        ${filteredEvents.length > 0 ? html`
-          <div class="chip-row" style="margin-top:6px;">
-            ${filteredEvents.map(e => html`<span class="chip muted">${unsafeHTML(toSanitizedMarkdownHtml(e.text))}</span>`)}
-          </div>
+        ${allEvents.length > 0 ? html`
+          ${hasMoreEvents ? html`
+            <details class="task-events-details" style="margin-top:6px;">
+              <summary class="task-events-summary muted" style="cursor:pointer;font-size:0.85em;list-style:none;display:flex;align-items:center;gap:4px;">
+                <span>▶ 展开全部步骤（${allEvents.length} 步）</span>
+              </summary>
+              <div class="chip-row" style="margin-top:4px;flex-direction:column;align-items:flex-start;gap:4px;">
+                ${allEvents.map(e => html`<span class="chip muted" style="max-width:100%;white-space:normal;word-break:break-all;">${unsafeHTML(toSanitizedMarkdownHtml(e.text))}</span>`)}
+              </div>
+            </details>
+          ` : html`
+            <div class="chip-row" style="margin-top:6px;flex-direction:column;align-items:flex-start;gap:4px;">
+              ${allEvents.map(e => html`<span class="chip muted" style="max-width:100%;white-space:normal;word-break:break-all;">${unsafeHTML(toSanitizedMarkdownHtml(e.text))}</span>`)}
+            </div>
+          `}
         ` : nothing}
       </div>
       <div class="list-meta">
@@ -173,12 +186,12 @@ function renderTask(task: TaskInfo) {
 
 // ── 只渲染内容（不含外层容器），注入到 innerContainer ─────────────────
 function renderContent() {
-  if (!innerContainer) return;
+  if (!innerContainer) {return;}
   const tasks = currentData?.tasks || [];
   const filteredTasks = tasks
     .filter(t => filter === "all" || t.status === filter)
     .filter(t => !searchQuery || t.taskName.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => b.startTime - a.startTime);
+    .toSorted((a, b) => b.startTime - a.startTime);
   const totalPages = Math.ceil(filteredTasks.length / PAGE_SIZE);
   const paginatedTasks = filteredTasks.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const stats = currentData?.stats || { total: 0, running: 0, completed: 0, pending: 0, failed: 0 };
@@ -279,7 +292,7 @@ function startTaskPanel(container: HTMLElement) {
   prefetchPromise = null;
 
   fetchPromise.then(() => {
-    if (!isActive) return;
+    if (!isActive) {return;}
     renderContent();
 
     if (refreshInterval === null) {
@@ -318,8 +331,8 @@ export function cleanupTaskPanel() {
  * 预拉取任务数据（切换到 task-panel tab 前调用，消除首次加载的白屏感）
  */
 export function prefetchTaskPanel() {
-  if (currentData) return; // 已有缓存数据，无需预拉取
-  if (prefetchPromise) return; // 已在拉取中
+  if (currentData) {return;} // 已有缓存数据，无需预拉取
+  if (prefetchPromise) {return;} // 已在拉取中
   prefetchPromise = fetchTasks().then(data => {
     currentData = data;
     prefetchPromise = null;
@@ -347,7 +360,7 @@ export function renderTaskPanel() {
       const fetchPromise = prefetchPromise ?? fetchTasks().then(data => { currentData = data; });
       prefetchPromise = null;
       fetchPromise.then(() => {
-        if (!isActive) return;
+        if (!isActive) {return;}
         renderContent();
         if (refreshInterval === null) {
           refreshInterval = setInterval(async () => {
