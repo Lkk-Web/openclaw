@@ -14,6 +14,7 @@ const ORPHAN_FALLBACK_WINDOW_MS = 15 * 60 * 1000;
 const SUBAGENT_MAX_ACTIVE_MS = 30 * 60 * 1000;
 const SUBAGENT_ACTIVITY_TEXT_MAX_LEN = 10000;
 const SUBAGENT_ACTIVITY_EVENT_LIMIT = 100;
+const MAX_COMPLETED_TASKS = 15;
 
 // ── Types (identical field names to original route.ts) ──────────────────────
 type SessionsIndex = Record<string, { sessionId?: string; updatedAt?: number }>;
@@ -39,6 +40,7 @@ export type AgentActivity = {
   state: "idle" | "working" | "waiting" | "offline";
   currentTool?: string;
   toolStatus?: string;
+  currentTask?: string;
   lastActive: number;
   subagents?: SubagentInfo[];
 };
@@ -240,27 +242,32 @@ async function parseSubagentActivityEvents(
   childSessionKey: string,
   sessionsIndex?: SessionsIndex,
 ): Promise<SubagentActivityEvent[]> {
-  let sessionId = resolveSubagentSessionId(childSessionKey, sessionsIndex);
-  let transcriptPath = sessionId ? path.join(agentSessionsDir, `${sessionId}.jsonl`) : "";
+  let sessionId: string | null = null;
+  let transcriptPath = "";
   
-  // If not found in parent's sessionsIndex, try loading from subagent's own agent directory
-  if (!sessionId || !existsSync(transcriptPath)) {
-    const match = childSessionKey.match(/^agent:([^:]+):/);
-    if (match?.[1]) {
-      const subagentId = match[1];
-      const subagentSessionsDir = resolveSessionTranscriptsDirForAgent(subagentId);
-      const subagentIndexPath = path.join(subagentSessionsDir, "sessions.json");
-      if (existsSync(subagentIndexPath)) {
-        try {
-          const raw = await fs.readFile(subagentIndexPath, "utf8");
-          const subagentIndex = JSON.parse(raw) as SessionsIndex;
-          sessionId = subagentIndex[childSessionKey]?.sessionId || null;
-          if (sessionId) {
-            transcriptPath = path.join(subagentSessionsDir, `${sessionId}.jsonl`);
-          }
-        } catch { /* ignore */ }
-      }
+  // First: try to resolve from the target agent's own sessions directory
+  // (handles cross-agent subagents, e.g. main spawning dev-assistant subagents)
+  const match = childSessionKey.match(/^agent:([^:]+):/);
+  if (match?.[1]) {
+    const targetAgentId = match[1];
+    const targetSessionsDir = resolveSessionTranscriptsDirForAgent(targetAgentId);
+    const targetIndexPath = path.join(targetSessionsDir, "sessions.json");
+    if (existsSync(targetIndexPath)) {
+      try {
+        const raw = await fs.readFile(targetIndexPath, "utf8");
+        const targetIndex = JSON.parse(raw) as SessionsIndex;
+        sessionId = targetIndex[childSessionKey]?.sessionId || null;
+        if (sessionId) {
+          transcriptPath = path.join(targetSessionsDir, `${sessionId}.jsonl`);
+        }
+      } catch { /* ignore */ }
     }
+  }
+  
+  // Fallback: try parent's sessionsIndex (for same-agent subagents)
+  if (!sessionId || !existsSync(transcriptPath)) {
+    sessionId = resolveSubagentSessionId(childSessionKey, sessionsIndex);
+    transcriptPath = sessionId ? path.join(agentSessionsDir, `${sessionId}.jsonl`) : "";
   }
   
   if (!sessionId || !existsSync(transcriptPath)) {return [];}
@@ -292,10 +299,11 @@ async function parseSubagentActivityEvents(
             if (!toolName || isSpawnTool(toolName)) {continue;}
             const args = block.type === "toolCall" ? block.arguments : block.input;
             const summary = extractToolArgSummary(toolName, args);
+            const toolEmoji = toolName === "read" ? "📖" : toolName === "exec" ? "🔧" : toolName === "edit" ? "✍️" : "🔧";
             if (summary) {
-              events.push({ key: `${i}:tool:${bi}`, text: `🔧 ${toolName}: ${summary}`, at });
+              events.push({ key: `${i}:tool:${bi}`, text: `${toolEmoji} ${toolName}: ${summary}`, at });
             } else {
-              events.push({ key: `${i}:tool:${bi}`, text: `🔧 ${toolName}`, at });
+              events.push({ key: `${i}:tool:${bi}`, text: `${toolEmoji} ${toolName}`, at });
             }
           }
         }
@@ -342,7 +350,7 @@ async function parseSubagentsFromSessionFile(
   try {
     const content = await fs.readFile(filePath, "utf8");
     const lines = content.split("\n").filter((l) => l.trim());
-    const activeSubtasks = new Map<string, { label: string; at: number; childSessionKey?: string }>();
+    const activeSubtasks = new Map<string, { label: string; at: number; childSessionKey?: string; status?: "running" | "completed" }>();
     const spawnToolIds = new Set<string>();
 
     for (const line of lines) {
@@ -350,37 +358,7 @@ async function parseSubagentsFromSessionFile(
         const record = JSON.parse(line) as Record<string, unknown>;
         const eventAt = parseRecordTimestamp(record);
 
-        // Legacy format
-        if (record.type === "assistant" && record.message) {
-          const msg = record.message as Record<string, unknown>;
-          const blocks = Array.isArray(msg.content) ? msg.content : [];
-          for (const block of blocks as Record<string, unknown>[]) {
-            if (block.type !== "tool_use" || typeof block.id !== "string" || !block.id) {continue;}
-            if (typeof block.name === "string" && isSpawnTool(block.name)) {
-              activeSubtasks.set(block.id, { label: pickSubagentLabel(block.input), at: eventAt });
-              spawnToolIds.add(block.id);
-            }
-          }
-        }
-        if (record.type === "user" && record.message) {
-          const msg = record.message as Record<string, unknown>;
-          const blocks = Array.isArray(msg.content) ? msg.content : [];
-          for (const block of blocks as Record<string, unknown>[]) {
-            if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
-              if (spawnToolIds.has(block.tool_use_id)) {
-                const childSessionKey = extractChildSessionKeyFromToolResultMessage(block);
-                if (childSessionKey && activeSubtasks.has(block.tool_use_id)) {
-                  const prev = activeSubtasks.get(block.tool_use_id)!;
-                  activeSubtasks.set(block.tool_use_id, { ...prev, childSessionKey });
-                }
-                continue;
-              }
-              activeSubtasks.delete(block.tool_use_id);
-            }
-          }
-        }
-
-        // New format
+        // New format (prioritize)
         if (record.type === "message" && record.message) {
           const msg = record.message as Record<string, unknown>;
           const role = typeof msg.role === "string" ? msg.role : "";
@@ -390,12 +368,12 @@ async function parseSubagentsFromSessionFile(
             for (const block of blocks as Record<string, unknown>[]) {
               if (block?.type === "toolCall" && typeof block.id === "string" && block.id) {
                 if (typeof block.name === "string" && isSpawnTool(block.name)) {
-                  activeSubtasks.set(block.id, { label: pickSubagentLabel(block.arguments), at: eventAt });
+                  activeSubtasks.set(block.id, { label: pickSubagentLabel(block.arguments), at: eventAt, status: "running" });
                   spawnToolIds.add(block.id);
                 }
               } else if (block?.type === "tool_use" && typeof block.id === "string") {
                 if (typeof (block.input as Record<string, unknown>)?.description === "string" && isSpawnTool(String(block.name || ""))) {
-                  activeSubtasks.set(block.id, { label: pickSubagentLabel(block.input), at: eventAt });
+                  activeSubtasks.set(block.id, { label: pickSubagentLabel(block.input), at: eventAt, status: "running" });
                   spawnToolIds.add(block.id);
                 }
               }
@@ -422,7 +400,7 @@ async function parseSubagentsFromSessionFile(
             if (completedLabel) {
               for (const [id, state] of activeSubtasks.entries()) {
                 if (state.label === completedLabel || state.label.includes(completedLabel) || completedLabel.includes(state.label)) {
-                  activeSubtasks.delete(id);
+                  activeSubtasks.set(id, { ...state, status: "completed" });
                   break;
                 }
               }
@@ -434,23 +412,38 @@ async function parseSubagentsFromSessionFile(
       }
     }
 
-    const now = Date.now();
+    // Check subagent session files for completion markers
     for (const [toolId, state] of activeSubtasks.entries()) {
       let activityEvents: SubagentActivityEvent[] | undefined;
+      let finalStatus = state.status || "running";
+      
       if (state.childSessionKey) {
         activityEvents = await parseSubagentActivityEvents(agentSessionsDir, state.childSessionKey, sessionsIndex);
-        // Filter out subagents with no recent activity
-        if (activityEvents.length > 0) {
-          const lastActivityAt = activityEvents[activityEvents.length - 1].at;
-          if (now - lastActivityAt > SUBAGENT_MAX_ACTIVE_MS) {continue;}
-        } else {
-          // No activity events - check spawn time
-          if (now - state.at > SUBAGENT_MAX_ACTIVE_MS) {continue;}
+        
+        // Check if subagent session has completion markers
+        if (finalStatus === "running") {
+          const sessionId = resolveSubagentSessionId(state.childSessionKey, sessionsIndex);
+          if (sessionId) {
+            const transcriptPath = path.join(agentSessionsDir, `${sessionId}.jsonl`);
+            if (existsSync(transcriptPath)) {
+              try {
+                const subContent = await fs.readFile(transcriptPath, "utf8");
+                const subLines = subContent.split("\n").filter((l) => l.trim());
+                for (const subLine of subLines) {
+                  try {
+                    const subRecord = JSON.parse(subLine) as Record<string, unknown>;
+                    if (subRecord.endTime || subRecord.completedAt) {
+                      finalStatus = "completed";
+                      break;
+                    }
+                  } catch { /* skip */ }
+                }
+              } catch { /* ignore */ }
+            }
+          }
         }
-      } else {
-        // No childSessionKey - check spawn time
-        if (now - state.at > SUBAGENT_MAX_ACTIVE_MS) {continue;}
       }
+      
       subagents.push({
         toolId,
         label: state.label,
@@ -462,7 +455,15 @@ async function parseSubagentsFromSessionFile(
   } catch {
     // ignore
   }
-  return subagents;
+  
+  // Filter out tasks with duration < 1000ms (脏数据过滤)
+  const now = Date.now();
+  return subagents.filter(sub => {
+    if (!sub.activityEvents || sub.activityEvents.length === 0) return true;
+    const firstEvent = sub.activityEvents[0];
+    const duration = now - firstEvent.at;
+    return duration >= 1000;
+  });
 }
 
 // ── Parse subagents from all recent parent sessions ───────────────────────────
@@ -507,6 +508,7 @@ async function parseSubagents(agentSessionsDir: string, agentId: string): Promis
       const orphanCutoff = Date.now() - ORPHAN_FALLBACK_WINDOW_MS;
       const files = await fs.readdir(agentSessionsDir);
       for (const file of files) {
+        if (file.endsWith(".jsonl.deleted")) {continue;}
         if (!file.endsWith(".jsonl") || file.startsWith("probe-")) {continue;}
         const filePath = path.join(agentSessionsDir, file);
         if (knownFilePaths.has(filePath)) {continue;}
@@ -531,7 +533,8 @@ async function parseSubagents(agentSessionsDir: string, agentId: string): Promis
     const dedupe = new Set<string>();
     for (const list of nested) {
       for (const sub of list) {
-        const key = `${sub.sessionKey || ""}::${sub.toolId}`;
+        // Use childSessionKey as unique identifier (if available), otherwise fallback to sessionKey::toolId
+        const key = sub.childSessionKey || `${sub.sessionKey || ""}::${sub.toolId}`;
         if (dedupe.has(key)) {continue;}
         dedupe.add(key);
         allSubagents.push(sub);
@@ -593,7 +596,7 @@ export async function getAgentActivities(): Promise<AgentActivity[]> {
       return {
         agentId,
         name: agentEntry?.name || agentId,
-        emoji: agentEntry?.identity?.emoji || agentEntry?.emoji || "🤖",
+        emoji: agentEntry?.identity?.emoji || "🤖",
         state,
         lastActive,
         subagents,

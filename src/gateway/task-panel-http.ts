@@ -173,11 +173,6 @@ function transformAgentToTask(agent: AgentActivity): TaskInfo | null {
     return null;
   }
 
-  // Filter out agents with no subagents (no actual work)
-  if (!agent.subagents || agent.subagents.length === 0) {
-    return null;
-  }
-
   return {
     taskId: `agent-${agent.agentId}`,
     taskName: `${agent.name} 正在工作`,
@@ -212,11 +207,10 @@ export async function handleTaskPanelHttpRequest(
     const tasks: TaskInfo[] = [];
     
     for (const agent of agents) {
-      // 跳过 main agent 的主任务
-      // const mainTask = transformAgentToTask(agent);
-      // if (mainTask) {
-      //   tasks.push(mainTask);
-      // }
+      const mainTask = transformAgentToTask(agent);
+      if (mainTask) {
+        tasks.push(mainTask);
+      }
 
       const subagentTasks = await transformSubagentToTasks(agent, agents);
       tasks.push(...subagentTasks);
