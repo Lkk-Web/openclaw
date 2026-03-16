@@ -102,6 +102,34 @@
 }
 
 /* ===========================================
+   Task Event Chips (步骤显示)
+   =========================================== */
+
+.task-event-chip {
+  max-width: 100%;
+  white-space: normal;
+  word-break: break-word;
+  border-radius: var(--radius-sm, 6px);
+  line-height: 1.5;
+}
+
+/* 在 chip 内部正常渲染 markdown 内容 */
+.task-event-chip p {
+  margin: 0;
+}
+
+.task-event-chip code {
+  background: var(--bg);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 11px;
+}
+
+.task-event-chip strong {
+  color: var(--text-primary);
+}
+
+/* ===========================================
    Task Steps Status
    =========================================== */
 

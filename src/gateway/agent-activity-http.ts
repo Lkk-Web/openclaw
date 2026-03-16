@@ -13,7 +13,7 @@ const MAX_PARENT_SESSIONS_TO_PARSE = 40;
 const ORPHAN_FALLBACK_WINDOW_MS = 15 * 60 * 1000;
 const SUBAGENT_MAX_ACTIVE_MS = 30 * 60 * 1000;
 const SUBAGENT_ACTIVITY_TEXT_MAX_LEN = 10000;
-const SUBAGENT_ACTIVITY_EVENT_LIMIT = 6;
+const SUBAGENT_ACTIVITY_EVENT_LIMIT = 100;
 
 // ── Types (identical field names to original route.ts) ──────────────────────
 type SessionsIndex = Record<string, { sessionId?: string; updatedAt?: number }>;
@@ -140,6 +140,43 @@ function extractToolArgSummary(toolName: string, args: unknown): string | null {
   return null;
 }
 
+// Extract build/test signals from exec tool result
+function extractBuildTestEvent(
+  msg: Record<string, unknown>,
+  key: string,
+  at: number,
+): SubagentActivityEvent | null {
+  // Look for output in message content blocks
+  const blocks = Array.isArray(msg.content) ? msg.content : [];
+  let outputText = "";
+  for (const block of blocks as Record<string, unknown>[]) {
+    if (!block) {continue;}
+    if (block.type === "text" && typeof block.text === "string") {
+      outputText += block.text;
+    } else if (block.type === "toolResult" && typeof block.content === "string") {
+      outputText += block.content;
+    }
+  }
+  // Also check direct output field
+  if (!outputText && typeof msg.output === "string") {outputText = msg.output;}
+  if (!outputText) {return null;}
+
+  // Detect build/test signals
+  const lower = outputText.toLowerCase();
+  if (/error|failed|failure/.test(lower) && /(build|compile|tsc|test)/.test(lower)) {
+    const snippet = outputText.replace(/\s+/g, " ").trim().slice(0, 200);
+    return { key, text: `❌ 构建/测试失败: ${snippet}`, at };
+  }
+  if (/(build|compile|tsc)\s*(success|done|ok|finished|\d+ warning)/i.test(outputText) ||
+      /successfully compiled/i.test(outputText)) {
+    return { key, text: "✅ 构建成功", at };
+  }
+  if (/tests?\s+passed|all tests/i.test(outputText)) {
+    return { key, text: "✅ 测试通过", at };
+  }
+  return null;
+}
+
 function extractChildSessionKeyFromPayload(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") {return null;}
   const data = payload as Record<string, unknown>;
@@ -247,20 +284,29 @@ async function parseSubagentActivityEvents(
         for (let bi = 0; bi < blocks.length; bi++) {
           const block = blocks[bi] as Record<string, unknown>;
           if (!block) {continue;}
-          if ((block.type === "toolCall" || block.type === "tool_use") && typeof block.name === "string") {
-            events.push({ key: `${i}:tool:${block.id || bi}`, text: `⏳ tool: ${block.name}`, at });
-            continue;
-          }
           if (block.type === "text") {
             const normalized = normalizeActivityText(block.text);
             if (normalized) {events.push({ key: `${i}:msg:${bi}`, text: normalized, at });}
+          } else if (block.type === "toolCall" || block.type === "tool_use") {
+            const toolName = typeof block.name === "string" ? block.name : "";
+            if (!toolName || isSpawnTool(toolName)) {continue;}
+            const args = block.type === "toolCall" ? block.arguments : block.input;
+            const summary = extractToolArgSummary(toolName, args);
+            if (summary) {
+              events.push({ key: `${i}:tool:${bi}`, text: `🔧 ${toolName}: ${summary}`, at });
+            } else {
+              events.push({ key: `${i}:tool:${bi}`, text: `🔧 ${toolName}`, at });
+            }
           }
         }
       } else if (role === "toolResult" || role === "tool") {
+        // 从 exec 工具结果中提取构建/测试信号
         const toolName = typeof msg.toolName === "string" ? msg.toolName.trim() : "";
-        if (toolName) {
-          events.push({ key: `${i}:result:${msg.toolCallId || ""}`, text: `✅ tool: ${toolName}`, at });
+        if (toolName === "exec") {
+          const buildTestEvent = extractBuildTestEvent(msg, `${i}:result:${msg.toolCallId || ""}`, at);
+          if (buildTestEvent) {events.push(buildTestEvent);}
         }
+        // 其他 tool 结果一律跳过
       } else if (role === "user") {
         for (let bi = 0; bi < blocks.length; bi++) {
           const normalized = normalizeActivityText((blocks[bi] as Record<string, unknown>)?.text);

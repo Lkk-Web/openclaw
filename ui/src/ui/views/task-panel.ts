@@ -163,12 +163,12 @@ function renderTask(task: TaskInfo) {
                 <span>▶ 展开全部步骤（${allEvents.length} 步）</span>
               </summary>
               <div class="chip-row" style="margin-top:4px;flex-direction:column;align-items:flex-start;gap:4px;">
-                ${allEvents.map(e => html`<span class="chip muted" style="max-width:100%;white-space:normal;word-break:break-all;">${unsafeHTML(toSanitizedMarkdownHtml(e.text))}</span>`)}
+                ${allEvents.map(e => html`<span class="chip muted task-event-chip">${unsafeHTML(toSanitizedMarkdownHtml(e.text))}</span>`)}
               </div>
             </details>
           ` : html`
             <div class="chip-row" style="margin-top:6px;flex-direction:column;align-items:flex-start;gap:4px;">
-              ${allEvents.map(e => html`<span class="chip muted" style="max-width:100%;white-space:normal;word-break:break-all;">${unsafeHTML(toSanitizedMarkdownHtml(e.text))}</span>`)}
+              ${allEvents.map(e => html`<span class="chip muted task-event-chip">${unsafeHTML(toSanitizedMarkdownHtml(e.text))}</span>`)}
             </div>
           `}
         ` : nothing}

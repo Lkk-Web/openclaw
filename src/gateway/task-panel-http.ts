@@ -153,14 +153,14 @@ function transformSubagentToTasks(agent: AgentActivity, allAgents: AgentActivity
     
     return {
       taskId,
-      taskName: extractTaskName(sub, agent) + '\n\n---\n\n' + filteredEvents.map(e => e.text).join('  \n'),
+      taskName: extractTaskName(sub, agent),
       status,
       agentId: realAgentId,
       agentName: realAgentName,
       agentEmoji: realAgentEmoji,
       startTime: getStartTime(events),
       duration: calculateDuration(events),
-      events: [],
+      events: filteredEvents,
       isSubagent: true,
     };
   });
