@@ -28,7 +28,7 @@ interface TaskPanelData {
 
 // ── 状态 ──────────────────────────────────────────────────────────────
 let currentData: TaskPanelData | null = null;
-let filter: "all" | "running" | "completed" | "failed" = "all";
+let filter: "all" | "running" | "completed" | "failed" = "running";
 let searchQuery = "";
 let currentPage = 1;
 const PAGE_SIZE = 10;
@@ -36,6 +36,8 @@ let refreshInterval: ReturnType<typeof setInterval> | null = null;
 let isActive = false;
 // 内部渲染容器（task-panel-view 内部），只用于内容更新
 let innerContainer: HTMLElement | null = null;
+// 后台预拉取 Promise，避免重复发起
+let prefetchPromise: Promise<void> | null = null;
 
 // ── localStorage（仅存 id+时间，精简） ────────────────────────────────
 const STORAGE_KEY = "openclaw-completed-tasks";
@@ -132,10 +134,13 @@ function parseSteps(text: string): string {
 
 function renderTask(task: TaskInfo) {
   const filteredEvents = task.events.slice(-2);
+  // 渲染完整内容，不切割 markdown（切割会导致列表/代码块等结构损坏）
   const parsedTaskName = parseSteps(task.taskName);
-  const lines = parsedTaskName.split("\n");
+  const fullHtml = toSanitizedMarkdownHtml(parsedTaskName);
+  const lines = parsedTaskName.split("\n").filter(l => l.trim());
   const isLong = lines.length > 3;
-  const preview = lines.slice(0, 3).join("\n");
+  const firstLine = lines[0] ?? "";
+  const taskTitle = firstLine.length > 30 ? firstLine.slice(0, 30) + "…" : firstLine;
 
   return html`
     <div class="list-item">
@@ -143,13 +148,11 @@ function renderTask(task: TaskInfo) {
         <div class="list-title">${task.agentEmoji} ${task.agentName}</div>
         ${isLong ? html`
           <details class="task-details">
-            <summary class="task-summary">
-              <div class="list-sub">${unsafeHTML(toSanitizedMarkdownHtml(preview))}</div>
-            </summary>
-            <div class="task-full list-sub">${unsafeHTML(toSanitizedMarkdownHtml(lines.slice(3).join("\n")))}</div>
+            <summary class="task-summary">查看详情（${taskTitle}）</summary>
+            <div class="task-full list-sub">${unsafeHTML(fullHtml)}</div>
           </details>
         ` : html`
-          <div class="list-sub">${unsafeHTML(toSanitizedMarkdownHtml(parsedTaskName))}</div>
+          <div class="list-sub">${unsafeHTML(fullHtml)}</div>
         `}
         ${filteredEvents.length > 0 ? html`
           <div class="chip-row" style="margin-top:6px;">
@@ -174,7 +177,8 @@ function renderContent() {
   const tasks = currentData?.tasks || [];
   const filteredTasks = tasks
     .filter(t => filter === "all" || t.status === filter)
-    .filter(t => !searchQuery || t.taskName.toLowerCase().includes(searchQuery.toLowerCase()));
+    .filter(t => !searchQuery || t.taskName.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => b.startTime - a.startTime);
   const totalPages = Math.ceil(filteredTasks.length / PAGE_SIZE);
   const paginatedTasks = filteredTasks.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const stats = currentData?.stats || { total: 0, running: 0, completed: 0, pending: 0, failed: 0 };
@@ -262,9 +266,20 @@ function startTaskPanel(container: HTMLElement) {
   isActive = true;
   innerContainer = container;
 
-  fetchTasks().then(data => {
-    if (!isActive) return;
+  // 如果有旧数据，先立即渲染（避免闪烁）
+  if (currentData) {
+    renderContent();
+  }
+
+  // 后台拉最新数据（若 prefetch 已在跑，复用它）
+  const fetchPromise = prefetchPromise ?? fetchTasks().then(data => {
     currentData = data;
+    return;
+  });
+  prefetchPromise = null;
+
+  fetchPromise.then(() => {
+    if (!isActive) return;
     renderContent();
 
     if (refreshInterval === null) {
@@ -286,40 +301,91 @@ function stopTaskPanel() {
     refreshInterval = null;
   }
   innerContainer = null;
-  currentData = null;
-  filter = "all";
-  searchQuery = "";
-  currentPage = 1;
 }
+
+// ── 外层容器（全局单例，不销毁重建）─────────────────────────────────
+let wrapperEl: HTMLElement | null = null;
+let domObserver: MutationObserver | null = null;
 
 export function cleanupTaskPanel() {
   stopTaskPanel();
+  if (domObserver) { domObserver.disconnect(); domObserver = null; }
+  wrapperEl = null;
+  prefetchPromise = null;
 }
 
-// ── 外层容器（只渲染一次，不会因 renderContent 重建）──────────────────
-export function renderTaskPanel() {
-  // 停止旧实例
-  stopTaskPanel();
+/**
+ * 预拉取任务数据（切换到 task-panel tab 前调用，消除首次加载的白屏感）
+ */
+export function prefetchTaskPanel() {
+  if (currentData) return; // 已有缓存数据，无需预拉取
+  if (prefetchPromise) return; // 已在拉取中
+  prefetchPromise = fetchTasks().then(data => {
+    currentData = data;
+    prefetchPromise = null;
+    // 如果此时容器已挂载，立即渲染
+    if (isActive && innerContainer) {
+      renderContent();
+    }
+  }).catch(() => { prefetchPromise = null; });
+}
 
-  // 返回一个稳定的外层容器，内部通过 startTaskPanel 动态填充
+export function renderTaskPanel() {
+  // 如果容器已存在且还在 DOM 中，直接复用，只确保轮询在跑
+  if (wrapperEl && document.contains(wrapperEl)) {
+    if (!isActive) {
+      // 恢复轮询（不重建 DOM）
+      isActive = true;
+      innerContainer = wrapperEl;
+
+      // 已有数据则立刻刷新显示
+      if (currentData) {
+        renderContent();
+      }
+
+      // 后台拉新数据（复用预拉取 Promise 或新发起）
+      const fetchPromise = prefetchPromise ?? fetchTasks().then(data => { currentData = data; });
+      prefetchPromise = null;
+      fetchPromise.then(() => {
+        if (!isActive) return;
+        renderContent();
+        if (refreshInterval === null) {
+          refreshInterval = setInterval(async () => {
+            if (!isActive) { stopTaskPanel(); return; }
+            try { currentData = await fetchTasks(); renderContent(); } catch { /* ignore */ }
+          }, 30000);
+        }
+      }).catch(() => { /* ignore */ });
+    }
+    return wrapperEl;
+  }
+
+  // 首次创建（或旧元素被 Lit diff 替换后重建）
   const wrapper = document.createElement("div");
   wrapper.className = "task-panel-view";
+  wrapperEl = wrapper;
 
-  // 用 setTimeout 等 wrapper 挂载到 DOM 后再启动
-  setTimeout(() => {
+  // 使用 microtask（queueMicrotask）代替 setTimeout，减少空白帧
+  queueMicrotask(() => {
     if (document.contains(wrapper)) {
       startTaskPanel(wrapper);
     }
-  }, 0);
+  });
 
-  // 监听卸载
-  const observer = new MutationObserver(() => {
-    if (!document.contains(wrapper)) {
+  // 监听从 DOM 移除（页面切走）
+  if (domObserver) {
+    domObserver.disconnect();
+    domObserver = null;
+  }
+  domObserver = new MutationObserver(() => {
+    if (wrapperEl && !document.contains(wrapperEl)) {
+      // 停止轮询但保留数据和容器引用（wrapperEl 置空让下次重建）
       stopTaskPanel();
-      observer.disconnect();
+      wrapperEl = null;
+      if (domObserver) { domObserver.disconnect(); domObserver = null; }
     }
   });
-  observer.observe(document.body, { childList: true, subtree: true });
+  domObserver.observe(document.body, { childList: true, subtree: true });
 
   return wrapper;
 }

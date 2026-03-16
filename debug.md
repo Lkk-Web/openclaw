@@ -13,7 +13,9 @@ pnpm gateway:watch
 
 pnpm openclaw setup # 设置本地.openclaw
 
-openclaw dashboard # 设置token
+# pnpm openclaw dashboard # 启动面板
+
+pnpm gateway:watch
 
 ```
 
@@ -25,5 +27,5 @@ openclaw dashboard # 设置token
 4. 编译ui
 
 ```
-
+pnpm ui:build
 ```

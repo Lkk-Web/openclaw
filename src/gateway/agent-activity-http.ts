@@ -101,6 +101,45 @@ function normalizeActivityText(raw: unknown): string | null {
     : compact;
 }
 
+// Extract a short, human-readable summary from tool call arguments.
+// Returns a single-line string or null.
+const TOOL_ARG_MAX_LEN = 300;
+
+function extractToolArgSummary(toolName: string, args: unknown): string | null {
+  if (!args || typeof args !== "object") {return null;}
+  const a = args as Record<string, unknown>;
+
+  // Per-tool primary key
+  const primaryKeys: Record<string, string[]> = {
+    exec: ["command"],
+    read: ["file_path", "path"],
+    write: ["file_path", "path"],
+    edit: ["file_path", "path"],
+    web_search: ["query"],
+    web_fetch: ["url"],
+    browser: ["url", "action", "element"],
+  };
+
+  const keys = primaryKeys[toolName] ?? [];
+  for (const key of keys) {
+    const val = a[key];
+    if (typeof val === "string" && val.trim()) {
+      const v = val.trim().replace(/\s+/g, " ");
+      return v.length > TOOL_ARG_MAX_LEN ? `${v.slice(0, TOOL_ARG_MAX_LEN - 1)}…` : v;
+    }
+  }
+
+  // Fallback: first string value found in args
+  for (const val of Object.values(a)) {
+    if (typeof val === "string" && val.trim()) {
+      const v = val.trim().replace(/\s+/g, " ");
+      return v.length > TOOL_ARG_MAX_LEN ? `${v.slice(0, TOOL_ARG_MAX_LEN - 1)}…` : v;
+    }
+  }
+
+  return null;
+}
+
 function extractChildSessionKeyFromPayload(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") {return null;}
   const data = payload as Record<string, unknown>;

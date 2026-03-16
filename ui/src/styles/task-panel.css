@@ -10,6 +10,13 @@
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100%;
+  /* 切换时淡入，避免白屏闪烁 */
+  animation: task-panel-fadein 0.15s ease-out;
+}
+
+@keyframes task-panel-fadein {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ===========================================
