@@ -31,6 +31,8 @@ export type SubagentInfo = {
   sessionKey?: string;
   childSessionKey?: string;
   activityEvents?: SubagentActivityEvent[];
+  status?: "running" | "completed" | "failed";
+  completedAt?: number;
 };
 
 export type AgentActivity = {
@@ -338,6 +340,99 @@ async function parseSubagentActivityEvents(
   }
 }
 
+// ── Check subagent status ────────────────────────────────────────────────────
+
+async function getSubagentStatus(
+  agentSessionsDir: string,
+  childSessionKey: string,
+  sessionsIndex?: SessionsIndex,
+): Promise<{ status: "running" | "completed" | "failed"; completedAt?: number }> {
+  if (!childSessionKey) return { status: "completed" };
+  
+  // Resolve session ID and transcript path
+  let sessionId: string | null = null;
+  let transcriptPath = "";
+  
+  // Try target agent's sessions directory first
+  const match = childSessionKey.match(/^agent:([^:]+):/);
+  if (match?.[1]) {
+    const targetAgentId = match[1];
+    const targetSessionsDir = resolveSessionTranscriptsDirForAgent(targetAgentId);
+    const targetIndexPath = path.join(targetSessionsDir, "sessions.json");
+    if (existsSync(targetIndexPath)) {
+      try {
+        const raw = await fs.readFile(targetIndexPath, "utf8");
+        const targetIndex = JSON.parse(raw) as SessionsIndex;
+        sessionId = targetIndex[childSessionKey]?.sessionId || null;
+        if (sessionId) {
+          transcriptPath = path.join(targetSessionsDir, `${sessionId}.jsonl`);
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  
+  // Fallback to parent's sessionsIndex
+  if (!sessionId || !existsSync(transcriptPath)) {
+    sessionId = resolveSubagentSessionId(childSessionKey, sessionsIndex);
+    transcriptPath = sessionId ? path.join(agentSessionsDir, `${sessionId}.jsonl`) : "";
+  }
+  
+  if (!sessionId || !existsSync(transcriptPath)) return { status: "completed" };
+  
+  try {
+    // Check sessions.json for abortedLastRun marker
+    const match = childSessionKey.match(/^agent:([^:]+):/);
+    if (match?.[1]) {
+      const targetAgentId = match[1];
+      const targetSessionsDir = resolveSessionTranscriptsDirForAgent(targetAgentId);
+      const targetIndexPath = path.join(targetSessionsDir, "sessions.json");
+      if (existsSync(targetIndexPath)) {
+        const raw = await fs.readFile(targetIndexPath, "utf8");
+        const targetIndex = JSON.parse(raw) as Record<string, { abortedLastRun?: boolean }>;
+        if (targetIndex[childSessionKey]?.abortedLastRun === true) {
+          return { status: "failed" };
+        }
+      }
+    }
+    
+    const content = await fs.readFile(transcriptPath, "utf8");
+    const lines = content.split("\n").filter((l) => l.trim());
+    
+    let lastActivityAt = 0;
+    let completedAt: number | undefined;
+    
+    for (const line of lines) {
+      try {
+        const record = JSON.parse(line) as Record<string, unknown>;
+        
+        // Check for completion markers
+        if (record.endTime || record.completedAt || record.status === "completed" || record.status === "killed") {
+          completedAt = typeof record.completedAt === "number" ? record.completedAt :
+                       typeof record.endTime === "number" ? record.endTime :
+                       parseRecordTimestamp(record);
+          return { status: record.status === "killed" ? "failed" : "completed", completedAt };
+        }
+        
+        // Track last activity time
+        const timestamp = parseRecordTimestamp(record);
+        if (timestamp > lastActivityAt) {
+          lastActivityAt = timestamp;
+        }
+      } catch { /* skip */ }
+    }
+    
+    // Check if last activity was within 30 minutes
+    const now = Date.now();
+    if (lastActivityAt > 0 && (now - lastActivityAt) > SUBAGENT_MAX_ACTIVE_MS) {
+      return { status: "completed", completedAt: lastActivityAt };
+    }
+    
+    return { status: "running" };
+  } catch {
+    return { status: "completed" };
+  }
+}
+
 // ── Parse subagents from one session file ────────────────────────────────────
 
 async function parseSubagentsFromSessionFile(
@@ -350,7 +445,7 @@ async function parseSubagentsFromSessionFile(
   try {
     const content = await fs.readFile(filePath, "utf8");
     const lines = content.split("\n").filter((l) => l.trim());
-    const activeSubtasks = new Map<string, { label: string; at: number; childSessionKey?: string; status?: "running" | "completed" }>();
+    const activeSubtasks = new Map<string, { label: string; at: number; childSessionKey?: string }>();
     const spawnToolIds = new Set<string>();
 
     for (const line of lines) {
@@ -358,7 +453,6 @@ async function parseSubagentsFromSessionFile(
         const record = JSON.parse(line) as Record<string, unknown>;
         const eventAt = parseRecordTimestamp(record);
 
-        // New format (prioritize)
         if (record.type === "message" && record.message) {
           const msg = record.message as Record<string, unknown>;
           const role = typeof msg.role === "string" ? msg.role : "";
@@ -368,41 +462,23 @@ async function parseSubagentsFromSessionFile(
             for (const block of blocks as Record<string, unknown>[]) {
               if (block?.type === "toolCall" && typeof block.id === "string" && block.id) {
                 if (typeof block.name === "string" && isSpawnTool(block.name)) {
-                  activeSubtasks.set(block.id, { label: pickSubagentLabel(block.arguments), at: eventAt, status: "running" });
+                  activeSubtasks.set(block.id, { label: pickSubagentLabel(block.arguments), at: eventAt });
                   spawnToolIds.add(block.id);
                 }
               } else if (block?.type === "tool_use" && typeof block.id === "string") {
                 if (typeof (block.input as Record<string, unknown>)?.description === "string" && isSpawnTool(String(block.name || ""))) {
-                  activeSubtasks.set(block.id, { label: pickSubagentLabel(block.input), at: eventAt, status: "running" });
+                  activeSubtasks.set(block.id, { label: pickSubagentLabel(block.input), at: eventAt });
                   spawnToolIds.add(block.id);
                 }
               }
             }
           } else if (role === "toolResult") {
             const toolCallId = typeof msg.toolCallId === "string" ? msg.toolCallId : "";
-            const toolName = typeof msg.toolName === "string" ? msg.toolName : "";
             if (toolCallId && spawnToolIds.has(toolCallId)) {
               const childSessionKey = extractChildSessionKeyFromToolResultMessage(msg);
               if (childSessionKey && activeSubtasks.has(toolCallId)) {
                 const prev = activeSubtasks.get(toolCallId)!;
                 activeSubtasks.set(toolCallId, { ...prev, childSessionKey });
-              }
-              continue;
-            }
-            if (toolCallId && !isSpawnTool(toolName) && !spawnToolIds.has(toolCallId)) {
-              activeSubtasks.delete(toolCallId);
-            }
-          } else if (role === "user") {
-            const text = (blocks as Record<string, unknown>[])
-              .map((b) => (b?.type === "text" && typeof b.text === "string") ? b.text : "")
-              .join("\n");
-            const completedLabel = extractCompletedSubagentLabel(text);
-            if (completedLabel) {
-              for (const [id, state] of activeSubtasks.entries()) {
-                if (state.label === completedLabel || state.label.includes(completedLabel) || completedLabel.includes(state.label)) {
-                  activeSubtasks.set(id, { ...state, status: "completed" });
-                  break;
-                }
               }
             }
           }
@@ -412,58 +488,30 @@ async function parseSubagentsFromSessionFile(
       }
     }
 
-    // Check subagent session files for completion markers
+    // Filter and build subagent list
     for (const [toolId, state] of activeSubtasks.entries()) {
-      let activityEvents: SubagentActivityEvent[] | undefined;
-      let finalStatus = state.status || "running";
+      if (!state.childSessionKey) continue;
       
-      if (state.childSessionKey) {
-        activityEvents = await parseSubagentActivityEvents(agentSessionsDir, state.childSessionKey, sessionsIndex);
-        
-        // Check if subagent session has completion markers
-        if (finalStatus === "running") {
-          const sessionId = resolveSubagentSessionId(state.childSessionKey, sessionsIndex);
-          if (sessionId) {
-            const transcriptPath = path.join(agentSessionsDir, `${sessionId}.jsonl`);
-            if (existsSync(transcriptPath)) {
-              try {
-                const subContent = await fs.readFile(transcriptPath, "utf8");
-                const subLines = subContent.split("\n").filter((l) => l.trim());
-                for (const subLine of subLines) {
-                  try {
-                    const subRecord = JSON.parse(subLine) as Record<string, unknown>;
-                    if (subRecord.endTime || subRecord.completedAt) {
-                      finalStatus = "completed";
-                      break;
-                    }
-                  } catch { /* skip */ }
-                }
-              } catch { /* ignore */ }
-            }
-          }
-        }
-      }
+      // Get subagent status
+      const statusInfo = await getSubagentStatus(agentSessionsDir, state.childSessionKey, sessionsIndex);
+      
+      const activityEvents = await parseSubagentActivityEvents(agentSessionsDir, state.childSessionKey, sessionsIndex);
       
       subagents.push({
         toolId,
         label: state.label,
         sessionKey,
         childSessionKey: state.childSessionKey,
-        activityEvents: activityEvents && activityEvents.length > 0 ? activityEvents : undefined,
+        activityEvents: activityEvents.length > 0 ? activityEvents : undefined,
+        status: statusInfo.status,
+        completedAt: statusInfo.completedAt,
       });
     }
   } catch {
     // ignore
   }
   
-  // Filter out tasks with duration < 1000ms (脏数据过滤)
-  const now = Date.now();
-  return subagents.filter(sub => {
-    if (!sub.activityEvents || sub.activityEvents.length === 0) return true;
-    const firstEvent = sub.activityEvents[0];
-    const duration = now - firstEvent.at;
-    return duration >= 1000;
-  });
+  return subagents;
 }
 
 // ── Parse subagents from all recent parent sessions ───────────────────────────
@@ -540,6 +588,20 @@ async function parseSubagents(agentSessionsDir: string, agentId: string): Promis
         allSubagents.push(sub);
       }
     }
+    
+    // Separate running and completed tasks
+    const running = allSubagents.filter(s => s.status === "running");
+    const completed = allSubagents.filter(s => s.status === "completed" || s.status === "failed");
+    
+    // Filter completed tasks from last 1 hour
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const recentCompleted = completed
+      .filter(s => (s.completedAt || 0) > oneHourAgo)
+      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
+      .slice(0, MAX_COMPLETED_TASKS);
+    
+    // Return all running + recent completed
+    return [...running, ...recentCompleted];
   } catch { /* ignore */ }
   return allSubagents;
 }
@@ -560,6 +622,91 @@ async function getAgentLastActive(agentId: string): Promise<number> {
     return lastActive;
   } catch {
     return 0;
+  }
+}
+
+// ── Extract current task from latest session ─────────────────────────────────
+
+async function extractCurrentTask(agentId: string): Promise<string | undefined> {
+  const sessionsDir = resolveSessionTranscriptsDirForAgent(agentId);
+  try {
+    // Load sessions index
+    const sessionsIndexPath = path.join(sessionsDir, "sessions.json");
+    if (!existsSync(sessionsIndexPath)) {return undefined;}
+    
+    const raw = await fs.readFile(sessionsIndexPath, "utf8");
+    const sessionsIndex = JSON.parse(raw) as SessionsIndex;
+    
+    // Find latest non-subagent session
+    let latestSession: { sessionId: string; updatedAt: number } | null = null;
+    for (const [sessionKey, meta] of Object.entries(sessionsIndex)) {
+      if (!meta?.sessionId || sessionKey.includes(":subagent:")) {continue;}
+      const updatedAt = meta.updatedAt || 0;
+      if (!latestSession || updatedAt > latestSession.updatedAt) {
+        latestSession = { sessionId: meta.sessionId, updatedAt };
+      }
+    }
+    
+    if (!latestSession) {return undefined;}
+    
+    // Read session transcript
+    const transcriptPath = path.join(sessionsDir, `${latestSession.sessionId}.jsonl`);
+    if (!existsSync(transcriptPath)) {return undefined;}
+    
+    const content = await fs.readFile(transcriptPath, "utf8");
+    const line = content.split("\n").filter((l) => l.trim());
+    
+    // Find last user message
+    let lastUserText = "";
+    for (let i = line.length - 1; i >= 0; i--) {
+      try {
+        const record = JSON.parse(line[i]) as Record<string, unknown>;
+        if (record.type !== "message") {continue;}
+        const msg = record.message as Record<string, unknown>;
+        if (msg?.role !== "user") {continue;}
+        
+        const blocks = Array.isArray(msg.content) ? msg.content : [];
+        for (const block of blocks as Record<string, unknown>[]) {
+          if (block?.type === "text" && typeof block.text === "string") {
+            lastUserText = block.text.trim();
+            break;
+          }
+        }
+        if (lastUserText) {break;}
+      } catch { /* skip */ }
+    }
+    
+    if (!lastUserText) {return undefined;}
+    
+    // Split by lines and take the last non-empty, non-metadata line
+    const lines = lastUserText.split('\n').map(l => l.trim()).filter(l => l);
+    let actualMessage = "";
+    
+    // Find the actual user message (skip metadata blocks)
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i];
+      // Skip JSON blocks, metadata markers, and code fences
+      if (line.startsWith('{') || line.startsWith('}') || 
+          line.startsWith('```') || 
+          line.includes('untrusted metadata') ||
+          line.includes('message_id') ||
+          line.includes('sender_id')) {
+        continue;
+      }
+      actualMessage = line;
+      break;
+    }
+    
+    if (!actualMessage) {
+      // Fallback: take last line
+      actualMessage = lines[lines.length - 1] || lastUserText;
+    }
+    
+    // Clean and limit to 200 chars
+    const cleaned = actualMessage.replace(/\s+/g, " ").trim();
+    return cleaned.length > 200 ? `${cleaned.slice(0, 197)}...` : cleaned;
+  } catch {
+    return undefined;
   }
 }
 
@@ -585,12 +732,14 @@ export async function getAgentActivities(): Promise<AgentActivity[]> {
       const state = resolveAgentState(lastActive, now);
 
       let subagents: SubagentInfo[] | undefined;
+      let currentTask: string | undefined;
       if (state !== "offline") {
         const sessionsDir = resolveSessionTranscriptsDirForAgent(agentId);
         if (existsSync(sessionsDir)) {
           const list = await parseSubagents(sessionsDir, agentId);
           if (list.length > 0) {subagents = list;}
         }
+        currentTask = await extractCurrentTask(agentId);
       }
 
       return {
@@ -599,6 +748,7 @@ export async function getAgentActivities(): Promise<AgentActivity[]> {
         emoji: agentEntry?.identity?.emoji || "🤖",
         state,
         lastActive,
+        currentTask,
         subagents,
       };
     })

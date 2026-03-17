@@ -114,7 +114,7 @@ function transformSubagentToTasks(agent: AgentActivity, allAgents: AgentActivity
   }
 
   const now = Date.now();
-  const SUBAGENT_IDLE_THRESHOLD = 2 * 60 * 1000;
+  const SUBAGENT_IDLE_THRESHOLD = 30 * 1000; // 30 seconds
 
   return agent.subagents.map(sub => {
     const taskId = sub.childSessionKey
@@ -168,14 +168,22 @@ function transformSubagentToTasks(agent: AgentActivity, allAgents: AgentActivity
 
 // Transform main agent activity to task (if active)
 function transformAgentToTask(agent: AgentActivity): TaskInfo | null {
-  // Only create a task for working/waiting agents
-  if (agent.state === "offline" || agent.state === "idle") {
+  // Skip offline agents, but keep idle as completed
+  if (agent.state === "offline") {
+    return null;
+  }
+
+  // Extract task name from activity events
+  let taskName = "";
+
+  // Return null if no valid task name
+  if (!taskName) {
     return null;
   }
 
   return {
     taskId: `agent-${agent.agentId}`,
-    taskName: `${agent.name} 正在工作`,
+    taskName,
     status: mapStateToStatus(agent.state),
     agentId: agent.agentId,
     agentName: agent.name,
