@@ -1,4 +1,4 @@
-import SHARED_TOOL_DISPLAY_JSON from "../../apps/shared/OpenClawKit/Sources/OpenClawKit/Resources/tool-display.json" with { type: "json" };
+import SHARED_TOOL_DISPLAY_JSON from "./tool-display.json" with { type: "json" };
 import { redactToolDetail } from "../logging/redact.js";
 import { shortenHomeInString } from "../utils.js";
 import {
@@ -30,7 +30,7 @@ export type ToolDisplay = {
   detail?: string;
 };
 
-const SHARED_TOOL_DISPLAY_CONFIG = SHARED_TOOL_DISPLAY_JSON as ToolDisplayConfig;
+const SHARED_TOOL_DISPLAY_CONFIG = {}
 const TOOL_DISPLAY_OVERRIDES = TOOL_DISPLAY_OVERRIDES_JSON as ToolDisplayConfig;
 const FALLBACK = TOOL_DISPLAY_OVERRIDES.fallback ??
   SHARED_TOOL_DISPLAY_CONFIG.fallback ?? { emoji: "🧩" };
