@@ -2,17 +2,19 @@ import type { TranslationMap } from "../lib/types.ts";
 
 export const zh_CN: TranslationMap = {
   common: {
-    version: "版本",
     health: "健康状况",
     ok: "正常",
+    online: "在线",
     offline: "离线",
     connect: "连接",
     refresh: "刷新",
     enabled: "已启用",
     disabled: "已禁用",
     na: "不适用",
+    version: "版本",
     docs: "文档",
     resources: "资源",
+    search: "搜索",
   },
   nav: {
     chat: "聊天",
@@ -21,6 +23,7 @@ export const zh_CN: TranslationMap = {
     settings: "设置",
     expand: "展开侧边栏",
     collapse: "折叠侧边栏",
+    resize: "调整侧边栏大小",
   },
   tabs: {
     agents: "代理",
@@ -35,6 +38,11 @@ export const zh_CN: TranslationMap = {
     chat: "聊天",
     "pixel-office": "像素办公室",
     config: "配置",
+    communications: "通信",
+    appearance: "外观与设置",
+    automation: "自动化",
+    infrastructure: "基础设施",
+    aiAgents: "AI 与代理",
     debug: "调试",
     logs: "日志",
     "task-panel": "任务面板",
@@ -108,6 +116,43 @@ export const zh_CN: TranslationMap = {
       hint: "此页面为 HTTP，因此浏览器阻止设备标识。请使用 HTTPS (Tailscale Serve) 或在网关主机上打开 {url}。",
       stayHttp: "如果您必须保持 HTTP，请设置 {config} (仅限令牌)。",
     },
+    connection: {
+      title: "如何连接",
+      step1: "在主机上启动网关：",
+      step2: "获取带令牌的仪表盘 URL：",
+      step3: "将 WebSocket URL 和令牌粘贴到上方，或直接打开带令牌的 URL。",
+      step4: "或生成可重复使用的令牌：",
+      docsHint: "如需远程访问，建议使用 Tailscale Serve。",
+      docsLink: "查看文档 →",
+    },
+    cards: {
+      cost: "费用",
+      skills: "技能",
+      recentSessions: "最近会话",
+    },
+    attention: {
+      title: "注意事项",
+    },
+    eventLog: {
+      title: "事件日志",
+    },
+    logTail: {
+      title: "网关日志",
+    },
+    quickActions: {
+      newSession: "新建会话",
+      automation: "自动化",
+      refreshAll: "全部刷新",
+      terminal: "终端",
+    },
+    palette: {
+      placeholder: "输入命令…",
+      noResults: "无结果",
+    },
+  },
+  login: {
+    subtitle: "网关仪表盘",
+    passwordPlaceholder: "可选",
   },
   chat: {
     disconnected: "已断开与网关的连接。",
