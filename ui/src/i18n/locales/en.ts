@@ -2,17 +2,20 @@ import type { TranslationMap } from "../lib/types.ts";
 
 export const en: TranslationMap = {
   common: {
-    version: "Version",
     health: "Health",
     ok: "OK",
+    online: "Online",
     offline: "Offline",
     connect: "Connect",
     refresh: "Refresh",
     enabled: "Enabled",
     disabled: "Disabled",
     na: "n/a",
+    version: "Version",
     docs: "Docs",
+    theme: "Theme",
     resources: "Resources",
+    search: "Search",
   },
   nav: {
     chat: "Chat",
@@ -21,6 +24,7 @@ export const en: TranslationMap = {
     settings: "Settings",
     expand: "Expand sidebar",
     collapse: "Collapse sidebar",
+    resize: "Resize sidebar",
   },
   tabs: {
     agents: "Agents",
@@ -35,6 +39,11 @@ export const en: TranslationMap = {
     chat: "Chat",
     "pixel-office": "Pixel Office",
     config: "Config",
+    communications: "Communications",
+    appearance: "Appearance",
+    automation: "Automation",
+    infrastructure: "Infrastructure",
+    aiAgents: "AI & Agents",
     debug: "Debug",
     logs: "Logs",
     "task-panel": "Task Panel",
@@ -109,16 +118,54 @@ export const en: TranslationMap = {
       hint: "This page is HTTP, so the browser blocks device identity. Use HTTPS (Tailscale Serve) or open {url} on the gateway host.",
       stayHttp: "If you must stay on HTTP, set {config} (token-only).",
     },
+    connection: {
+      title: "How to connect",
+      step1: "Start the gateway on your host machine:",
+      step2: "Get a tokenized dashboard URL:",
+      step3: "Paste the WebSocket URL and token above, or open the tokenized URL directly.",
+      step4: "Or generate a reusable token:",
+      docsHint: "For remote access, Tailscale Serve is recommended. ",
+      docsLink: "Read the docs →",
+    },
+    cards: {
+      cost: "Cost",
+      skills: "Skills",
+      recentSessions: "Recent Sessions",
+    },
+    attention: {
+      title: "Attention",
+    },
+    eventLog: {
+      title: "Event Log",
+    },
+    logTail: {
+      title: "Gateway Logs",
+    },
+    quickActions: {
+      newSession: "New Session",
+      automation: "Automation",
+      refreshAll: "Refresh All",
+      terminal: "Terminal",
+    },
+    palette: {
+      placeholder: "Type a command…",
+      noResults: "No results",
+    },
+  },
+  login: {
+    subtitle: "Gateway Dashboard",
+    passwordPlaceholder: "optional",
   },
   chat: {
     disconnected: "Disconnected from gateway.",
     refreshTitle: "Refresh chat data",
     thinkingToggle: "Toggle assistant thinking/working output",
+    toolCallsToggle: "Toggle tool calls and tool results",
     focusToggle: "Toggle focus mode (hide sidebar + page header)",
     hideCronSessions: "Hide cron sessions",
     showCronSessions: "Show cron sessions",
     showCronSessionsHidden: "Show cron sessions ({count} hidden)",
-    onboardingDisabled: "Disabled during onboarding",
+    onboardingDisabled: "Disabled during setup",
   },
   languages: {
     en: "English",

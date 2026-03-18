@@ -3,6 +3,13 @@ import { z } from "zod";
 export { z };
 import { buildSecretInputSchema, hasConfiguredSecretInput } from "./secret-input.js";
 
+const ChannelActionsSchema = z
+  .object({
+    reactions: z.boolean().optional(),
+  })
+  .strict()
+  .optional();
+
 const DmPolicySchema = z.enum(["open", "pairing", "allowlist"]);
 const GroupPolicySchema = z.union([
   z.enum(["open", "allowlist", "disabled"]),
@@ -170,6 +177,7 @@ const FeishuSharedConfigShape = {
   renderMode: RenderModeSchema,
   streaming: StreamingModeSchema,
   tools: FeishuToolsConfigSchema,
+  actions: ChannelActionsSchema,
   replyInThread: ReplyInThreadSchema,
   reactionNotifications: ReactionNotificationModeSchema,
   typingIndicator: z.boolean().optional(),
@@ -187,7 +195,7 @@ export const FeishuAccountConfigSchema = z
     agent: z.string().optional(), // Agent ID to route messages to
     appId: z.string().optional(),
     appSecret: buildSecretInputSchema().optional(),
-    encryptKey: z.string().optional(),
+    encryptKey: buildSecretInputSchema().optional(),
     verificationToken: buildSecretInputSchema().optional(),
     domain: FeishuDomainSchema.optional(),
     connectionMode: FeishuConnectionModeSchema.optional(),
@@ -205,7 +213,7 @@ export const FeishuConfigSchema = z
     // Top-level credentials (backward compatible for single-account mode)
     appId: z.string().optional(),
     appSecret: buildSecretInputSchema().optional(),
-    encryptKey: z.string().optional(),
+    encryptKey: buildSecretInputSchema().optional(),
     verificationToken: buildSecretInputSchema().optional(),
     domain: FeishuDomainSchema.optional().default("feishu"),
     connectionMode: FeishuConnectionModeSchema.optional().default("websocket"),
@@ -241,13 +249,23 @@ export const FeishuConfigSchema = z
 
     const defaultConnectionMode = value.connectionMode ?? "websocket";
     const defaultVerificationTokenConfigured = hasConfiguredSecretInput(value.verificationToken);
-    if (defaultConnectionMode === "webhook" && !defaultVerificationTokenConfigured) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["verificationToken"],
-        message:
-          'channels.feishu.connectionMode="webhook" requires channels.feishu.verificationToken',
-      });
+    const defaultEncryptKeyConfigured = hasConfiguredSecretInput(value.encryptKey);
+    if (defaultConnectionMode === "webhook") {
+      if (!defaultVerificationTokenConfigured) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["verificationToken"],
+          message:
+            'channels.feishu.connectionMode="webhook" requires channels.feishu.verificationToken',
+        });
+      }
+      if (!defaultEncryptKeyConfigured) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["encryptKey"],
+          message: 'channels.feishu.connectionMode="webhook" requires channels.feishu.encryptKey',
+        });
+      }
     }
 
     for (const [accountId, account] of Object.entries(value.accounts ?? {})) {
@@ -260,6 +278,8 @@ export const FeishuConfigSchema = z
       }
       const accountVerificationTokenConfigured =
         hasConfiguredSecretInput(account.verificationToken) || defaultVerificationTokenConfigured;
+      const accountEncryptKeyConfigured =
+        hasConfiguredSecretInput(account.encryptKey) || defaultEncryptKeyConfigured;
       if (!accountVerificationTokenConfigured) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -267,6 +287,15 @@ export const FeishuConfigSchema = z
           message:
             `channels.feishu.accounts.${accountId}.connectionMode="webhook" requires ` +
             "a verificationToken (account-level or top-level)",
+        });
+      }
+      if (!accountEncryptKeyConfigured) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["accounts", accountId, "encryptKey"],
+          message:
+            `channels.feishu.accounts.${accountId}.connectionMode="webhook" requires ` +
+            "an encryptKey (account-level or top-level)",
         });
       }
     }
