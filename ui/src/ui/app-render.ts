@@ -10,7 +10,6 @@ import { renderUsageTab } from "./app-render-usage-tab.ts";
 import {
   renderChatControls,
   renderChatMobileToggle,
-  renderChatSessionSelect,
   renderTab,
   renderSidebarConnectionStatus,
   renderTopbarThemeModeToggle,
@@ -97,8 +96,6 @@ import { renderGatewayUrlConfirmation } from "./views/gateway-url-confirmation.t
 import { renderLoginGate } from "./views/login-gate.ts";
 import { renderOverview } from "./views/overview.ts";
 import { renderPixelOffice } from "./views/pixel-office.ts";
-import { renderSessions } from "./views/sessions.ts";
-import { renderSkills } from "./views/skills.ts";
 import { renderTaskPanel } from "./views/task-panel.ts";
 
 // Lazy-loaded view modules – deferred so the initial bundle stays small.
