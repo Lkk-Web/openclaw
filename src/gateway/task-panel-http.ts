@@ -168,14 +168,19 @@ function transformSubagentToTasks(agent: AgentActivity, allAgents: AgentActivity
 
 // Transform main agent activity to task (if active)
 function transformAgentToTask(agent: AgentActivity): TaskInfo | null {
-  // Skip offline agents, but keep idle as completed
+  // Skip offline agents
   if (agent.state === "offline") {
     return null;
   }
 
-  // Extract task name from activity events
-  let taskName = "";
+  // Skip idle agents (no active task)
+  if (agent.state === "idle") {
+    return null;
+  }
 
+  // Extract task name from currentTask field
+  const taskName = agent.currentTask?.trim();
+  
   // Return null if no valid task name
   if (!taskName) {
     return null;
