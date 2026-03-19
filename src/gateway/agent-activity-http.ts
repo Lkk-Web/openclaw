@@ -50,7 +50,7 @@ export type AgentActivity = {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function isSpawnTool(name: string): boolean {
-  return name === "sessions_spawn" || name === "session_spawn";
+  return name === "sessions_spawn" || name === "session_spawn" || name === "sessions_send";
 }
 
 function pickSubagentLabel(raw: unknown): string {
