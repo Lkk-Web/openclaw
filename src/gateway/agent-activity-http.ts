@@ -62,6 +62,15 @@ function pickSubagentLabel(raw: unknown): string {
   return "Subtask";
 }
 
+// Extract target sessionKey from sessions_send arguments
+function extractSessionSendTarget(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object") {return null;}
+  const args = raw as Record<string, unknown>;
+  const sessionKey = args.sessionKey;
+  if (typeof sessionKey === "string" && sessionKey.trim()) {return sessionKey.trim();}
+  return null;
+}
+
 function extractCompletedSubagentLabel(text: string): string | null {
   if (!text) {return null;}
   const patterns = [
@@ -347,7 +356,7 @@ async function getSubagentStatus(
   childSessionKey: string,
   sessionsIndex?: SessionsIndex,
 ): Promise<{ status: "running" | "completed" | "failed"; completedAt?: number }> {
-  if (!childSessionKey) return { status: "completed" };
+  if (!childSessionKey) {return { status: "completed" };}
   
   // Resolve session ID and transcript path
   let sessionId: string | null = null;
@@ -377,7 +386,7 @@ async function getSubagentStatus(
     transcriptPath = sessionId ? path.join(agentSessionsDir, `${sessionId}.jsonl`) : "";
   }
   
-  if (!sessionId || !existsSync(transcriptPath)) return { status: "completed" };
+  if (!sessionId || !existsSync(transcriptPath)) {return { status: "completed" };}
   
   try {
     // Check sessions.json for abortedLastRun marker
@@ -462,12 +471,23 @@ async function parseSubagentsFromSessionFile(
             for (const block of blocks as Record<string, unknown>[]) {
               if (block?.type === "toolCall" && typeof block.id === "string" && block.id) {
                 if (typeof block.name === "string" && isSpawnTool(block.name)) {
-                  activeSubtasks.set(block.id, { label: pickSubagentLabel(block.arguments), at: eventAt });
+                  const label = pickSubagentLabel(block.arguments);
+                  // For sessions_send, extract sessionKey directly from arguments
+                  const childSessionKey = block.name === "sessions_send" 
+                    ? extractSessionSendTarget(block.arguments) 
+                    : null;
+                  activeSubtasks.set(block.id, { label, at: eventAt, childSessionKey: childSessionKey || undefined });
                   spawnToolIds.add(block.id);
                 }
               } else if (block?.type === "tool_use" && typeof block.id === "string") {
-                if (typeof (block.input as Record<string, unknown>)?.description === "string" && isSpawnTool(String(block.name || ""))) {
-                  activeSubtasks.set(block.id, { label: pickSubagentLabel(block.input), at: eventAt });
+                const toolName = String(block.name || "");
+                if (typeof (block.input as Record<string, unknown>)?.description === "string" && isSpawnTool(toolName)) {
+                  const label = pickSubagentLabel(block.input);
+                  // For sessions_send, extract sessionKey directly from input
+                  const childSessionKey = toolName === "sessions_send" 
+                    ? extractSessionSendTarget(block.input) 
+                    : null;
+                  activeSubtasks.set(block.id, { label, at: eventAt, childSessionKey: childSessionKey || undefined });
                   spawnToolIds.add(block.id);
                 }
               }
@@ -490,7 +510,7 @@ async function parseSubagentsFromSessionFile(
 
     // Filter and build subagent list
     for (const [toolId, state] of activeSubtasks.entries()) {
-      if (!state.childSessionKey) continue;
+      if (!state.childSessionKey) {continue;}
       
       // Get subagent status
       const statusInfo = await getSubagentStatus(agentSessionsDir, state.childSessionKey, sessionsIndex);
@@ -597,7 +617,7 @@ async function parseSubagents(agentSessionsDir: string, agentId: string): Promis
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
     const recentCompleted = completed
       .filter(s => (s.completedAt || 0) > oneHourAgo)
-      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
+      .toSorted((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
       .slice(0, MAX_COMPLETED_TASKS);
     
     // Return all running + recent completed
