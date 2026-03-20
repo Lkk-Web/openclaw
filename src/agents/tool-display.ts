@@ -30,7 +30,7 @@ export type ToolDisplay = {
   detail?: string;
 };
 
-const SHARED_TOOL_DISPLAY_CONFIG = {}
+const SHARED_TOOL_DISPLAY_CONFIG = {} as any
 const TOOL_DISPLAY_OVERRIDES = TOOL_DISPLAY_OVERRIDES_JSON as ToolDisplayConfig;
 const FALLBACK = TOOL_DISPLAY_OVERRIDES.fallback ??
   SHARED_TOOL_DISPLAY_CONFIG.fallback ?? { emoji: "🧩" };
