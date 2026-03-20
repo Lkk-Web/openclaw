@@ -1,9 +1,9 @@
 {
   "name": "@cass/openclaw",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "Multi-channel AI gateway with extensible messaging integrations,v3.14",
   "keywords": [],
-  "homepage": "https://github.com/openclaw/openclaw#readme",
+  "homepage": "https://github.com/Lkk-Web/openclaw#readme",
   "bugs": {
     "url": "https://github.com/openclaw/openclaw/issues"
   },
@@ -11,10 +11,10 @@
   "author": "",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/openclaw/openclaw.git"
+    "url": "https://github.com/Lkk-Web/openclaw"
   },
   "bin": {
-    "openclaw": "openclaw.mjs"
+    "openclaw-cass": "openclaw.mjs"
   },
   "directories": {
     "doc": "docs",

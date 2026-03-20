@@ -10,18 +10,19 @@
 
 在发布到 npm 之前，需要确保 `package.json` 中的关键字段已正确配置：
 
-| 字段 | 说明 | 示例值 |
-|------|------|--------|
-| `name` | npm 包名称 | `openclaw` |
-| `version` | 版本号 (遵循 vYYYY.M.D 格式) | `2026.3.14` |
-| `description` | 包描述 | `Multi-channel AI gateway with extensible messaging integrations` |
-| `license` | 许可证 | `MIT` |
-| `bin` | CLI 入口点 | `{"openclaw": "openclaw.mjs"}` |
-| `files` | 发布时包含的文件 | 见下方 |
-| `engines` | Node.js 版本要求 | `{"node": ">=22.16.0"}` |
-| `packageManager` | pnpm 版本要求 | `pnpm@10.23.0` |
+| 字段             | 说明                         | 示例值                                                            |
+| ---------------- | ---------------------------- | ----------------------------------------------------------------- |
+| `name`           | npm 包名称                   | `openclaw`                                                        |
+| `version`        | 版本号 (遵循 vYYYY.M.D 格式) | `2026.3.14`                                                       |
+| `description`    | 包描述                       | `Multi-channel AI gateway with extensible messaging integrations` |
+| `license`        | 许可证                       | `MIT`                                                             |
+| `bin`            | CLI 入口点                   | `{"openclaw": "openclaw.mjs"}`                                    |
+| `files`          | 发布时包含的文件             | 见下方                                                            |
+| `engines`        | Node.js 版本要求             | `{"node": ">=22.16.0"}`                                           |
+| `packageManager` | pnpm 版本要求                | `pnpm@10.23.0`                                                    |
 
 **关键 files 配置说明：**
+
 ```json
 "files": [
   "CHANGELOG.md",
@@ -37,6 +38,8 @@
 ```
 
 ### 1.2 构建和发布命令
+
+#### 发布到公网 npm
 
 ```bash
 # 进入项目目录
@@ -59,6 +62,47 @@ pnpm publish --tag beta    # 发布到 beta 频道
 pnpm publish --tag dev     # 发布到 dev 频道
 ```
 
+#### 发布到内网 verdaccio
+
+```bash
+# 进入项目目录
+cd ~/Desktop/github/ai/openclaw
+
+# 1. 安装依赖
+pnpm install
+
+# 2. 构建项目
+pnpm build
+
+# 3. 登录内网 verdaccio（首次发布需要）
+npm login --registry http://<内网IP>:4873
+
+# 4. 发布到内网（方式一：命令行指定）
+pnpm publish --registry http://<内网IP>:4873
+```
+
+**方式二：在 package.json 中配置（推荐）**
+
+如果你想避免每次发布时输入 `--registry`，可以在 `package.json` 中添加 `publishConfig`：
+
+```json
+{
+  "name": "@cass/openclaw",
+  "version": "1.0.0",
+  "publishConfig": {
+    "registry": "http://<内网IP>:4873"
+  }
+}
+```
+
+配置后，直接运行：
+
+```bash
+pnpm publish
+```
+
+> ⚠️ **注意**：由于你的包名是 `@cass/openclaw`（scoped 包），发布到内网时需要确保 verdaccio 已配置对应作用域的访问权限。
+
 ### 1.3 版本号管理
 
 OpenClaw 使用日期格式的版本号：`vYYYY.M.D`
@@ -68,6 +112,7 @@ OpenClaw 使用日期格式的版本号：`vYYYY.M.D`
 - **dev**: 开发版，使用 `dev` 标签
 
 发布后切换版本频道：
+
 ```bash
 # 切换到 stable 频道
 openclaw update --channel stable
@@ -85,17 +130,15 @@ openclaw update --channel dev
 
 ### 2.1 环境要求
 
-| 要求 | 最小版本 |
-|------|----------|
-| Node.js | ≥ 22.16.0 |
+| 要求     | 最小版本         |
+| -------- | ---------------- |
+| Node.js  | ≥ 22.16.0        |
 | 包管理器 | npm, pnpm 或 bun |
 
 **推荐使用 nvm 管理 Node.js 版本：**
-```bash
-# 安装 nvm (如果没有)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 
-# 安装并使用 Node.js 22
+```bash
+# nvm安装并使用 Node.js 22
 nvm install 22
 nvm use 22
 nvm alias default 22
@@ -103,18 +146,47 @@ nvm alias default 22
 
 ### 2.2 安装命令
 
+#### 公网 npm（官方源）
+
 ```bash
 # 使用 npm 安装
-npm install -g openclaw@latest
+npm install -g @cass/openclaw@latest
 
 # 或者使用 pnpm 安装（推荐）
-pnpm add -g openclaw@latest
+pnpm add -g @cass/openclaw@latest
 
 # 或者使用 bun 安装
-bun add -g openclaw@latest
+bun add -g @cass/openclaw@latest
 ```
 
-### 2.3 初始化配置
+#### 内网 verdaccio（私有源）
+
+如果你的 OpenClaw 已经发布到内网 verdaccio，需要先配置 npm 仓库地址：
+
+```bash
+# 方式一：全局配置（推荐）
+npm config set registry http://<内网IP>:4873
+
+# 方式二：临时指定仓库安装
+npm install -g @cass/openclaw@latest --registry http://<内网IP>:4873
+pnpm add -g @cass/openclaw@latest --registry http://<内网IP>:4873
+```
+
+**验证配置成功：**
+
+```bash
+# 查看当前 registry 配置
+npm config get registry
+
+# 应该输出: http://<内网IP>:4873
+```
+
+> ⚠️ **注意**：
+>
+> - 将 `<内网IP>` 替换为你的 Verdaccio 服务器实际 IP 地址
+> - 你的包名是 `@cass/openclaw`，这是 scoped 包，安装时需要包含完整作用域
+
+### 2.3 初始化配置(无配置，有配置跳过)
 
 安装完成后，运行交互式配置向导：
 
@@ -127,6 +199,7 @@ openclaw onboard --install-daemon
 ```
 
 `onboard` 命令会引导你完成：
+
 1. 配置 Gateway（网关）
 2. 配置工作区
 3. 配置消息通道（WhatsApp、Telegram、Discord 等）
@@ -143,16 +216,11 @@ openclaw gateway --port 18666
 # 如果端口被占用，强制杀掉占用进程
 openclaw gateway --port 18666 --force
 
-# 开发模式（隔离配置，默认端口 19001）
-openclaw --dev gateway
-
-# 开发模式指定端口
-openclaw --dev gateway --port 19001
 ```
 
 #### 方式二：配置文件
 
-在 `~/.openclaw/config.yaml` 中配置：
+在 `~/.openclaw/openclaw.json` 中配置：
 
 ```yaml
 gateway:
@@ -185,12 +253,13 @@ openclaw health
 ### 3.1 启动服务
 
 #### 前台运行
+
 ```bash
 # 启动 Gateway
 openclaw gateway run
 
 # 启动 Node Host
-openclaw node run --host 127.0.0.1 --port 18666
+openclaw node run --host 127.0.0.1 --port 4873
 ```
 
 #### 后台守护进程（推荐）
@@ -242,20 +311,20 @@ openclaw logs
 
 ### 3.4 常用命令速查
 
-| 操作 | 命令 |
-|------|------|
-| 启动 Gateway | `openclaw gateway run` |
-| 停止 Gateway | `openclaw gateway stop` |
-| 重启 Gateway | `openclaw gateway restart` |
-| 查看状态 | `openclaw gateway status` |
-| 健康检查 | `openclaw health` |
-| 查看日志 | `openclaw logs` |
-| 配置通道 | `openclaw channels login telegram` |
-| 发送消息 | `openclaw message send --to @user --message "Hello"` |
-| 与助手对话 | `openclaw agent --message "你的问题"` |
-| 运行 TUI | `openclaw tui` |
-| 打开控制面板 | `openclaw dashboard` |
-| 健康检查和修复 | `openclaw doctor` |
+| 操作           | 命令                                                 |
+| -------------- | ---------------------------------------------------- |
+| 启动 Gateway   | `openclaw gateway run`                               |
+| 停止 Gateway   | `openclaw gateway stop`                              |
+| 重启 Gateway   | `openclaw gateway restart`                           |
+| 查看状态       | `openclaw gateway status`                            |
+| 健康检查       | `openclaw health`                                    |
+| 查看日志       | `openclaw logs`                                      |
+| 配置通道       | `openclaw channels login telegram`                   |
+| 发送消息       | `openclaw message send --to @user --message "Hello"` |
+| 与助手对话     | `openclaw agent --message "你的问题"`                |
+| 运行 TUI       | `openclaw tui`                                       |
+| 打开控制面板   | `openclaw dashboard`                                 |
+| 健康检查和修复 | `openclaw doctor`                                    |
 
 ---
 
@@ -285,23 +354,23 @@ openclaw node uninstall
 
 ```bash
 # 使用 npm 卸载
-npm uninstall -g openclaw
+npm uninstall -g @cass/openclaw
 
 # 使用 pnpm 卸载
-pnpm remove -g openclaw
+pnpm remove -g @cass/openclaw
 
 # 使用 bun 卸载
-bun remove -g openclaw
+bun remove -g @cass/openclaw
 ```
 
 ### 4.4 清理配置和数据
 
 OpenClaw 的配置和数据存储在以下位置：
 
-| 类型 | 路径 |
-|------|------|
-| 默认配置目录 | `~/.openclaw/` |
-| 开发模式配置 | `~/.openclaw-dev/` |
+| 类型         | 路径                  |
+| ------------ | --------------------- |
+| 默认配置目录 | `~/.openclaw/`        |
+| 开发模式配置 | `~/.openclaw-dev/`    |
 | 指定 profile | `~/.openclaw-<name>/` |
 
 #### 方式一：使用内置命令（保留 CLI）
@@ -361,10 +430,10 @@ echo "OpenClaw 已完全卸载"
 
 ```bash
 # 查看端口占用
-lsof -i :18666
+lsof -i :4873
 
 # 使用 --force 参数强制占用
-openclaw gateway --port 18666 --force
+openclaw gateway --port 4873 --force
 ```
 
 ### 5.2 Node.js 版本问题
@@ -374,6 +443,7 @@ openclaw requires Node >=22.16.0.
 ```
 
 解决方案：
+
 ```bash
 # 使用 nvm 切换版本
 nvm install 22
@@ -390,9 +460,9 @@ node --version
 openclaw update
 
 # 更新到最新版本
-npm update -g openclaw
+npm update -g @cass/openclaw
 # 或
-pnpm update -g openclaw
+pnpm update -g @cass/openclaw
 
 # 更新后运行 doctor 检查
 openclaw doctor
@@ -408,17 +478,47 @@ openclaw config file
 openclaw config get gateway.port
 ```
 
+### 5.5 内网 verdaccio 连接问题
+
+```bash
+# 检查网络连通性
+curl http://<内网IP>:4873
+
+# 查看 npm 当前仓库配置
+npm config list
+
+# 清除 npm 缓存后重试
+npm cache clean --force
+npm install -g openclaw@latest --registry http://<内网IP>:4873
+```
+
+### 5.6 切换回公网 npm
+
+```bash
+# 恢复默认公网源
+npm config set registry https://registry.npmjs.org/
+
+# 验证
+npm config get registry
+# 应该输出: https://registry.npmjs.org/
+```
+
 ---
 
 ## 6. 快速参考卡
 
 ```bash
-# ===== 安装 =====
+# ===== 安装（公网） =====
 npm install -g openclaw@latest
 openclaw onboard --install-daemon
 
+# ===== 安装（内网 verdaccio） =====
+npm config set registry http://<内网IP>:4873
+npm install -g @cass/openclaw@latest
+openclaw onboard --install-daemon
+
 # ===== 启动 =====
-openclaw gateway --port 18666 --verbose    # 前台运行
+openclaw gateway --port 4873 --verbose    # 前台运行
 openclaw gateway start                      # 后台运行
 
 # ===== 常用 =====
@@ -444,4 +544,4 @@ rm -rf ~/.openclaw
 
 ---
 
-*文档版本: 2026.3.20*
+_文档版本: 2026.3.20_
